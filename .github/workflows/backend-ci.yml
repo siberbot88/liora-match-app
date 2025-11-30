@@ -1,0 +1,78 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: liora_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/api/package-lock.json
+
+    - name: Install dependencies
+      working-directory: backend/api
+      run: npm ci
+
+    - name: Setup environment
+      working-directory: backend/api
+      run: |
+        echo "DATABASE_URL=mysql://root:test@localhost:3306/liora_test" > .env
+        echo "REDIS_HOST=localhost" >> .env
+        echo "REDIS_PORT=6379" >> .env
+        echo "JWT_SECRET=test-secret-key" >> .env
+        echo "JWT_EXPIRES_IN=7d" >> .env
+
+    - name: Generate Prisma Client
+      working-directory: backend/api
+      run: npx prisma generate
+
+    - name: Run migrations
+      working-directory: backend/api
+      run: npx prisma migrate deploy
+
+    - name: Run tests
+      working-directory: backend/api
+      run: npm run test
+
+    - name: Run E2E tests
+      working-directory: backend/api
+      run: npm run test:e2e

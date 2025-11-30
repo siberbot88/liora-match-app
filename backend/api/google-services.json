@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "533983392668",
+    "project_id": "liora-match",
+    "storage_bucket": "liora-match.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:533983392668:android:31a288297edb46e228ce59",
+        "android_client_info": {
+          "package_name": "com.liora.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASM6u5wX-sWSpiArWQRgkMVai7hkM7A6c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

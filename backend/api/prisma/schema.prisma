@@ -1,0 +1,297 @@
+// Prisma Schema untuk Liora Backend - Platform Guru & Murid
+// Database: MySQL Local (OS Service)
+// Database name: liora
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ========================================
+// ENUMS
+// ========================================
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum ClassMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+// ========================================
+// MODELS
+// ========================================
+
+// User - Base user model untuk autentikasi
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  name          String
+  phone         String?
+  firebaseUid   String?         @unique
+  role          UserRole        @default(STUDENT)
+  avatar        String?
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  // Relations
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+  sentMessages   Message[]       @relation("SentMessages")
+  receivedMessages Message[]     @relation("ReceivedMessages")
+
+  @@map("users")
+  @@index([email])
+  @@index([firebaseUid])
+}
+
+// StudentProfile - Profile khusus murid
+model StudentProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  grade           String?  // Kelas (SD, SMP, SMA, dll)
+  school          String?
+  address         String?
+  parentName      String?
+  parentPhone     String?
+  learningGoals   String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollments     ClassEnrollment[]
+  bookings        Booking[]
+
+  @@map("student_profiles")
+  @@index([userId])
+}
+
+// TeacherProfile - Profile khusus guru
+model TeacherProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  bio             String?  @db.Text
+  education       String?  // Pendidikan terakhir
+  experience      Int?     // Tahun pengalaman mengajar
+  hourlyRate      Int?     // Tarif per jam (dalam rupiah)
+  rating          Float?   @default(0)
+  totalReviews    Int      @default(0)
+  isVerified      Boolean  @default(false)
+  address         String?
+  city            String?
+  province        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects        TeacherSubject[]
+  availabilitySlots AvailabilitySlot[]
+  classes         Class[]
+  sessions        ClassSession[]
+
+  @@map("teacher_profiles")
+  @@index([userId])
+  @@index([city])
+  @@index([rating])
+}
+
+// Subject - Mata pelajaran
+model Subject {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g., "Matematika", "Bahasa Inggris"
+  description String?  @db.Text
+  icon        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  teachers    TeacherSubject[]
+  classes     Class[]
+
+  @@map("subjects")
+  @@index([name])
+}
+
+// TeacherSubject - Junction table untuk guru & mata pelajaran
+model TeacherSubject {
+  id              String   @id @default(cuid())
+  teacherProfileId String
+  subjectId       String
+  isPrimary       Boolean  @default(false) // Mata pelajaran utama
+  createdAt       DateTime @default(now())
+
+  // Relations
+  teacher         TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  subject         Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherProfileId, subjectId])
+  @@map("teacher_subjects")
+  @@index([teacherProfileId])
+  @@index([subjectId])
+}
+
+// AvailabilitySlot - Jadwal ketersediaan guru
+model AvailabilitySlot {
+  id              String   @id @default(cuid())
+  teacherProfileId String
+  dayOfWeek       Int      // 0 = Minggu, 1 = Senin, ..., 6 = Sabtu
+  startTime       String   // Format: "HH:mm" (e.g., "09:00")
+  endTime         String   // Format: "HH:mm" (e.g., "12:00")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  teacher         TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+
+  @@map("availability_slots")
+  @@index([teacherProfileId])
+  @@index([dayOfWeek])
+}
+
+// Class - Kelas yang dibuka oleh guru
+model Class {
+  id              String    @id @default(cuid())
+  teacherProfileId String
+  subjectId       String
+  title           String
+  description     String?   @db.Text
+  mode            ClassMode @default(ONLINE)
+  location        String?   // Untuk mode OFFLINE/HYBRID
+  maxStudents     Int       @default(10)
+  pricePerSession Int       // Harga per sesi
+  duration        Int       // Durasi dalam menit
+  level           String?   // e.g., "Pemula", "Menengah", "Lanjut"
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  teacher         TeacherProfile    @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+  subject         Subject           @relation(fields: [subjectId], references: [id])
+  sessions        ClassSession[]
+  enrollments     ClassEnrollment[]
+  bookings        Booking[]
+
+  @@map("classes")
+  @@index([teacherProfileId])
+  @@index([subjectId])
+  @@index([mode])
+  @@index([isActive])
+}
+
+// ClassSession - Sesi kelas yang dijadwalkan
+model ClassSession {
+  id              String        @id @default(cuid())
+  classId         String
+  teacherProfileId String
+  title           String
+  scheduledAt     DateTime      // Waktu mulai sesi
+  duration        Int           // Durasi dalam menit
+  meetingLink     String?       // Link untuk kelas online
+  location        String?       // Lokasi untuk kelas offline
+  status          SessionStatus @default(SCHEDULED)
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  class           Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher         TeacherProfile @relation(fields: [teacherProfileId], references: [id])
+
+  @@map("class_sessions")
+  @@index([classId])
+  @@index([teacherProfileId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+// ClassEnrollment - Pendaftaran murid ke kelas
+model ClassEnrollment {
+  id               String   @id @default(cuid())
+  classId          String
+  studentProfileId String
+  enrolledAt       DateTime @default(now())
+  isActive         Boolean  @default(true)
+  progress         Int      @default(0) // Progress dalam persen (0-100)
+
+  // Relations
+  class            Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student          StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentProfileId])
+  @@map("class_enrollments")
+  @@index([classId])
+  @@index([studentProfileId])
+}
+
+// Booking - Booking untuk kelas/sesi privat
+model Booking {
+  id               String        @id @default(cuid())
+  classId          String
+  studentProfileId String
+  scheduledAt      DateTime      // Waktu booking
+  duration         Int           // Durasi dalam menit
+  totalPrice       Int           // Total harga
+  status           BookingStatus @default(PENDING)
+  notes            String?       @db.Text
+  cancelReason     String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  // Relations
+  class            Class          @relation(fields: [classId], references: [id])
+  student          StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  @@map("bookings")
+  @@index([classId])
+  @@index([studentProfileId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+// Message - Pesan antara guru dan murid
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String   @db.Text
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  sender     User @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
