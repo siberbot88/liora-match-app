@@ -114,6 +114,7 @@ model TeacherProfile {
   availabilitySlots AvailabilitySlot[]
   classes         Class[]
   sessions        ClassSession[]
+  bookings        Booking[]
 
   @@map("teacher_profiles")
   @@index([userId])
@@ -133,6 +134,7 @@ model Subject {
   // Relations
   teachers    TeacherSubject[]
   classes     Class[]
+  bookings    Booking[]
 
   @@map("subjects")
   @@index([name])
@@ -256,9 +258,12 @@ model Booking {
   id               String        @id @default(cuid())
   classId          String
   studentProfileId String
+  teacherProfileId String       // Direct relation to teacher
+  subjectId        String        // Direct relation to subject
   scheduledAt      DateTime      // Waktu booking
   duration         Int           // Durasi dalam menit
   totalPrice       Int           // Total harga
+  mode             ClassMode?    // Online/Offline/Hybrid
   status           BookingStatus @default(PENDING)
   notes            String?       @db.Text
   cancelReason     String?       @db.Text
@@ -268,13 +273,18 @@ model Booking {
   // Relations
   class            Class          @relation(fields: [classId], references: [id])
   student          StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  teacher          TeacherProfile @relation(fields: [teacherProfileId], references: [id])
+  subject          Subject        @relation(fields: [subjectId], references: [id])
 
   @@map("bookings")
   @@index([classId])
   @@index([studentProfileId])
+  @@index([teacherProfileId])
+  @@index([subjectId])
   @@index([scheduledAt])
   @@index([status])
 }
+
 
 // Message - Pesan antara guru dan murid
 model Message {

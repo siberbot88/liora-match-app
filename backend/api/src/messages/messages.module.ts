@@ -1,8 +1,27 @@
 import { Module } from '@nestjs/common';
+import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
 import { MessagesGateway } from './messages.gateway';
+import { PrismaModule } from '../prisma/prisma.module';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
-  providers: [MessagesService, MessagesGateway]
+  imports: [
+    PrismaModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+        signOptions: {
+          expiresIn: configService.get('JWT_EXPIRES_IN') || '7d',
+        },
+      }),
+    }),
+  ],
+  controllers: [MessagesController],
+  providers: [MessagesService, MessagesGateway],
+  exports: [MessagesService],
 })
-export class MessagesModule {}
+export class MessagesModule { }

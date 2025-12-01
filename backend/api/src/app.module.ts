@@ -12,7 +12,6 @@ import { StudentsModule } from './students/students.module';
 import { ClassesModule } from './classes/classes.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { MessagesModule } from './messages/messages.module';
-
 @Module({
     imports: [
         // Configuration

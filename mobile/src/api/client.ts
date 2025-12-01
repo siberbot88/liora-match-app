@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
 
 // API client configuration
 export const api = axios.create({
@@ -12,11 +13,11 @@ export const api = axios.create({
 // Request interceptor for adding auth token
 api.interceptors.request.use(
     (config) => {
-        // TODO: Add authentication token from store
-        // const token = useAuthStore.getState().token;
-        // if (token) {
-        //   config.headers.Authorization = `Bearer ${token}`;
-        // }
+        // Get token from Zustand store
+        const token = useAuthStore.getState().token;
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
     },
     (error) => {
@@ -30,7 +31,8 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             // Handle unauthorized - logout user
-            console.log('Unauthorized - please login');
+            console.log('Unauthorized - logging out');
+            useAuthStore.getState().logout();
         }
         return Promise.reject(error);
     }
