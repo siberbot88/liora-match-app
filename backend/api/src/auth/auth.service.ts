@@ -115,8 +115,108 @@ export class AuthService {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
             include: {
-                studentProfile: true,
-                teacherProfile: true,
+                studentProfile: {
+                    include: {
+                        enrollments: {
+                            where: { isActive: true },
+                            include: {
+                                class: {
+                                    include: {
+                                        subject: true,
+                                        teacher: {
+                                            include: {
+                                                user: {
+                                                    select: {
+                                                        id: true,
+                                                        name: true,
+                                                        avatar: true,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                            take: 10,
+                            orderBy: { enrolledAt: 'desc' },
+                        },
+                        bookings: {
+                            where: {
+                                status: { in: ['PENDING', 'CONFIRMED'] },
+                            },
+                            include: {
+                                class: {
+                                    include: {
+                                        subject: true,
+                                    },
+                                },
+                                teacher: {
+                                    include: {
+                                        user: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                avatar: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                            take: 10,
+                            orderBy: { scheduledAt: 'desc' },
+                        },
+                    },
+                },
+                teacherProfile: {
+                    include: {
+                        subjects: {
+                            include: {
+                                subject: true,
+                            },
+                        },
+                        availabilitySlots: {
+                            where: { isActive: true },
+                            orderBy: [
+                                { dayOfWeek: 'asc' },
+                                { startTime: 'asc' },
+                            ],
+                        },
+                        classes: {
+                            where: { isActive: true },
+                            include: {
+                                subject: true,
+                                _count: {
+                                    select: {
+                                        enrollments: true,
+                                    },
+                                },
+                            },
+                            take: 10,
+                            orderBy: { createdAt: 'desc' },
+                        },
+                        bookings: {
+                            where: {
+                                status: { in: ['PENDING', 'CONFIRMED'] },
+                            },
+                            include: {
+                                student: {
+                                    include: {
+                                        user: {
+                                            select: {
+                                                id: true,
+                                                name: true,
+                                                avatar: true,
+                                            },
+                                        },
+                                    },
+                                },
+                                subject: true,
+                            },
+                            take: 10,
+                            orderBy: { scheduledAt: 'desc' },
+                        },
+                    },
+                },
             },
         });
 
@@ -124,7 +224,12 @@ export class AuthService {
             throw new UnauthorizedException('User not found');
         }
 
-        return {
+        if (!user.isActive) {
+            throw new UnauthorizedException('User account is inactive');
+        }
+
+        // Return structured response based on role
+        const response: any = {
             id: user.id,
             email: user.email,
             name: user.name,
@@ -133,8 +238,44 @@ export class AuthService {
             avatar: user.avatar,
             isActive: user.isActive,
             createdAt: user.createdAt,
-            studentProfile: user.studentProfile,
-            teacherProfile: user.teacherProfile,
+            updatedAt: user.updatedAt,
         };
+
+        if (user.role === UserRole.STUDENT && user.studentProfile) {
+            response.studentProfile = {
+                id: user.studentProfile.id,
+                grade: user.studentProfile.grade,
+                school: user.studentProfile.school,
+                address: user.studentProfile.address,
+                parentName: user.studentProfile.parentName,
+                parentPhone: user.studentProfile.parentPhone,
+                learningGoals: user.studentProfile.learningGoals,
+                enrolledClasses: user.studentProfile.enrollments?.map((e) => ({
+                    ...e.class,
+                    enrollmentProgress: e.progress,
+                    enrolledAt: e.enrolledAt,
+                })) || [],
+                upcomingBookings: user.studentProfile.bookings || [],
+            };
+        } else if (user.role === UserRole.TEACHER && user.teacherProfile) {
+            response.teacherProfile = {
+                id: user.teacherProfile.id,
+                bio: user.teacherProfile.bio,
+                education: user.teacherProfile.education,
+                experience: user.teacherProfile.experience,
+                hourlyRate: user.teacherProfile.hourlyRate,
+                rating: user.teacherProfile.rating,
+                totalReviews: user.teacherProfile.totalReviews,
+                isVerified: user.teacherProfile.isVerified,
+                city: user.teacherProfile.city,
+                province: user.teacherProfile.province,
+                subjects: user.teacherProfile.subjects || [],
+                availabilitySlots: user.teacherProfile.availabilitySlots || [],
+                activeClasses: user.teacherProfile.classes || [],
+                pendingBookings: user.teacherProfile.bookings || [],
+            };
+        }
+
+        return response;
     }
 }
