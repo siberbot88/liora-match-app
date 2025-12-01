@@ -1,0 +1,3 @@
+# Ignore uploaded files (local development)
+public/uploads/**
+!public/uploads/.gitkeep

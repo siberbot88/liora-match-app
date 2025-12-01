@@ -12,6 +12,14 @@ import { StudentsModule } from './students/students.module';
 import { ClassesModule } from './classes/classes.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { MessagesModule } from './messages/messages.module';
+// Phase 3 modules
+import { DevicesModule } from './devices/devices.module';
+import { FilesModule } from './files/files.module';
+import { PaymentsModule } from './payments/payments.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { CalendarModule } from './calendar/calendar.module';
+import { HealthModule } from './health/health.module';
+
 @Module({
     imports: [
         // Configuration
@@ -30,18 +38,20 @@ import { MessagesModule } from './messages/messages.module';
         FirebaseModule,
 
         AuthModule,
-
         UsersModule,
-
         TeachersModule,
-
         StudentsModule,
-
         ClassesModule,
-
         BookingsModule,
-
         MessagesModule,
+
+        // Phase 3
+        DevicesModule,
+        FilesModule,
+        PaymentsModule,
+        NotificationsModule,
+        CalendarModule,
+        HealthModule,
     ],
     controllers: [AppController],
     providers: [AppService],

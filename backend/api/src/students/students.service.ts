@@ -17,9 +17,7 @@ export class StudentsService {
             include: {
                 studentProfile: {
                     include: {
-                        enrollments: {
-                            where: { isActive: true },
-                            include: {
+                        enrollments: {include: {
                                 class: {
                                     include: {
                                         subject: true,
@@ -128,7 +126,7 @@ export class StudentsService {
             this.prisma.classEnrollment.count({
                 where: {
                     studentProfileId: user.studentProfile.id,
-                    isActive: true,
+
                 },
             }),
             this.prisma.booking.count({
@@ -187,7 +185,7 @@ export class StudentsService {
         const skip = (page - 1) * limit;
         const where: any = {
             user: {
-                isActive: true,
+
                 role: UserRole.TEACHER,
             },
         };
@@ -292,16 +290,12 @@ export class StudentsService {
                         subject: true,
                     },
                 },
-                availabilitySlots: {
-                    where: { isActive: true },
-                    orderBy: [
+                availabilitySlots: {orderBy: [
                         { dayOfWeek: 'asc' },
                         { startTime: 'asc' },
                     ],
                 },
-                classes: {
-                    where: { isActive: true },
-                    include: {
+                classes: {include: {
                         subject: true,
                         _count: {
                             select: {
@@ -345,7 +339,7 @@ export class StudentsService {
         const teachers = await this.prisma.teacherProfile.findMany({
             where: {
                 user: {
-                    isActive: true,
+
                     role: UserRole.TEACHER,
                 },
                 isVerified: true,
@@ -416,7 +410,7 @@ export class StudentsService {
 
         const skip = (page - 1) * limit;
         const where: any = {
-            isActive: true,
+
         };
 
         if (subjectId) {
@@ -558,7 +552,7 @@ export class StudentsService {
         const enrollments = await this.prisma.classEnrollment.findMany({
             where: {
                 studentProfileId: user.studentProfile.id,
-                isActive: true,
+
             },
             include: {
                 class: {
@@ -792,7 +786,7 @@ export class StudentsService {
             this.prisma.classEnrollment.findMany({
                 where: {
                     studentProfileId: user.studentProfile.id,
-                    isActive: true,
+
                 },
                 include: {
                     class: {
@@ -840,7 +834,7 @@ export class StudentsService {
         const enrollments = await this.prisma.classEnrollment.findMany({
             where: {
                 studentProfileId: user.studentProfile.id,
-                isActive: true,
+
             },
             include: {
                 class: {

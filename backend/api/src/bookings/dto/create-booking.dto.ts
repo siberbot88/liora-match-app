@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsDateString, IsInt, Min } from 'class-validator';
 import { ClassMode } from '@prisma/client';
 
 export class CreateBookingDto {
@@ -16,6 +16,11 @@ export class CreateBookingDto {
     @IsEnum(ClassMode)
     @IsOptional()
     mode?: ClassMode;
+
+    @IsInt()
+    @Min(15)
+    @IsOptional()
+    duration?: number; // In minutes (default: 60)
 
     @IsString()
     @IsOptional()

@@ -16,7 +16,7 @@ export class UsersService {
                 phone: true,
                 role: true,
                 avatar: true,
-                isActive: true,
+
                 createdAt: true,
                 updatedAt: true,
                 studentProfile: {
@@ -69,7 +69,7 @@ export class UsersService {
                 phone: true,
                 role: true,
                 avatar: true,
-                isActive: true,
+
                 createdAt: true,
                 updatedAt: true,
                 studentProfile: true,

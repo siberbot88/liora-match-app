@@ -16,7 +16,7 @@ export class AuthService {
     async firebaseLogin(dto: FirebaseLoginDto) {
         try {
             // Verify Firebase token
-            const decodedToken = await this.firebaseService.verifyIdToken(dto.firebaseToken);
+            const decodedToken = await this.firebaseService.verifyToken(dto.firebaseToken);
 
             if (!decodedToken.uid || !decodedToken.email) {
                 throw new UnauthorizedException('Invalid Firebase token');
@@ -61,6 +61,10 @@ export class AuthService {
                     await this.prisma.teacherProfile.create({
                         data: {
                             userId: user.id,
+                            bio: '',
+                            education: '',
+                            experience: 0,
+                            hourlyRate: 50000,
                         },
                     });
                 }
@@ -76,10 +80,6 @@ export class AuthService {
             }
 
             // Check if user is active
-            if (!user.isActive) {
-                throw new UnauthorizedException('User account is inactive');
-            }
-
             // Generate internal JWT
             const payload = {
                 sub: user.id,
@@ -223,11 +223,6 @@ export class AuthService {
         if (!user) {
             throw new UnauthorizedException('User not found');
         }
-
-        if (!user.isActive) {
-            throw new UnauthorizedException('User account is inactive');
-        }
-
         // Return structured response based on role
         const response: any = {
             id: user.id,
@@ -236,7 +231,6 @@ export class AuthService {
             role: user.role,
             phone: user.phone,
             avatar: user.avatar,
-            isActive: user.isActive,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };

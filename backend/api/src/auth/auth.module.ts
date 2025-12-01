@@ -10,22 +10,20 @@ import { FirebaseModule } from '../firebase/firebase.module';
 
 @Module({
   imports: [
-    PrismaModule,
     FirebaseModule,
-    PassportModule.register({ defaultStrategy: 'jwt' }),
+    PrismaModule,
+    PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get('JWT_SECRET'),
-        signOptions: {
-          expiresIn: configService.get('JWT_EXPIRES_IN') || '7d',
-        },
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: configService.get<string>('JWT_EXPIRATION') || '7d' },
       }),
+      inject: [ConfigService],
     }),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtStrategy],
+  exports: [AuthService],
 })
 export class AuthModule { }
