@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { QueryClassesDto } from './dto/query-classes.dto';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
+import { CreateSessionDto } from './dto/create-session.dto';
 import { UserRole } from '@prisma/client';
 
 @Injectable()
@@ -155,8 +156,8 @@ export class ClassesService {
                 mode: dto.mode,
                 location: dto.location,
                 maxStudents: dto.maxStudents,
-                pricePerSession: 50000, // Default price
-                duration: 60, // Default 60 minutes
+                pricePerSession: 50000,
+                duration: 60,
             },
             include: {
                 subject: true,
@@ -189,7 +190,6 @@ export class ClassesService {
             throw new NotFoundException('Class not found');
         }
 
-        // Verify ownership
         if (classItem.teacherProfileId !== user.teacherProfile.id) {
             throw new ForbiddenException('You can only update your own classes');
         }
@@ -228,12 +228,10 @@ export class ClassesService {
             throw new NotFoundException('Class not found');
         }
 
-        // Verify ownership
         if (classItem.teacherProfileId !== user.teacherProfile.id) {
             throw new ForbiddenException('You can only delete your own classes');
         }
 
-        // Soft delete by setting isActive to false
         await this.prisma.class.update({
             where: { id: classId },
             data: { isActive: false },
@@ -275,12 +273,10 @@ export class ClassesService {
             throw new BadRequestException('This class is not active');
         }
 
-        // Check if class is full
         if (classItem._count.enrollments >= classItem.maxStudents) {
             throw new BadRequestException('Class is full');
         }
 
-        // Check if already enrolled
         const existingEnrollment = await this.prisma.classEnrollment.findUnique({
             where: {
                 classId_studentProfileId: {
@@ -316,6 +312,41 @@ export class ClassesService {
         return enrollment;
     }
 
+    async unenroll(userId: string, classId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { studentProfile: true },
+        });
+
+        if (!user || user.role !== UserRole.STUDENT || !user.studentProfile) {
+            throw new ForbiddenException('Only students can unenroll from classes');
+        }
+
+        const enrollment = await this.prisma.classEnrollment.findUnique({
+            where: {
+                classId_studentProfileId: {
+                    classId,
+                    studentProfileId: user.studentProfile.id,
+                },
+            },
+        });
+
+        if (!enrollment) {
+            throw new NotFoundException('Not enrolled in this class');
+        }
+
+        await this.prisma.classEnrollment.delete({
+            where: {
+                classId_studentProfileId: {
+                    classId,
+                    studentProfileId: user.studentProfile.id,
+                },
+            },
+        });
+
+        return { message: 'Successfully unenrolled from class' };
+    }
+
     async getTeacherClasses(userId: string) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -349,5 +380,164 @@ export class ClassesService {
         });
 
         return classes;
+    }
+
+    // =============== SESSION MANAGEMENT ===============
+
+    async createSession(userId: string, classId: string, dto: CreateSessionDto) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { teacherProfile: true },
+        });
+
+        if (!user || user.role !== UserRole.TEACHER || !user.teacherProfile) {
+            throw new ForbiddenException('Only teachers can create sessions');
+        }
+
+        const classItem = await this.prisma.class.findUnique({
+            where: { id: classId },
+        });
+
+        if (!classItem) {
+            throw new NotFoundException('Class not found');
+        }
+
+        if (classItem.teacherProfileId !== user.teacherProfile.id) {
+            throw new ForbiddenException('You can only create sessions for your own classes');
+        }
+
+        const session = await this.prisma.classSession.create({
+            data: {
+                classId,
+                teacherProfileId: user.teacherProfile.id,
+                title: dto.title,
+                description: dto.description,
+                scheduledAt: new Date(dto.scheduledAt),
+                duration: dto.duration,
+                meetingUrl: dto.meetingUrl,
+                notes: dto.notes,
+                status: 'SCHEDULED',
+            },
+            include: {
+                class: {
+                    include: {
+                        subject: true,
+                    },
+                },
+            },
+        });
+
+        return session;
+    }
+
+    async getSessions(classId: string) {
+        const sessions = await this.prisma.classSession.findMany({
+            where: { classId },
+            orderBy: {
+                scheduledAt: 'asc',
+            },
+            include: {
+                class: {
+                    select: {
+                        title: true,
+                        subject: true,
+                    },
+                },
+            },
+        });
+
+        return sessions;
+    }
+
+    async getSessionDetail(sessionId: string) {
+        const session = await this.prisma.classSession.findUnique({
+            where: { id: sessionId },
+            include: {
+                class: {
+                    include: {
+                        subject: true,
+                        teacher: {
+                            include: {
+                                user: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        avatar: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!session) {
+            throw new NotFoundException('Session not found');
+        }
+
+        return session;
+    }
+
+    async updateSession(userId: string, sessionId: string, dto: Partial<CreateSessionDto>) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { teacherProfile: true },
+        });
+
+        if (!user || user.role !== UserRole.TEACHER || !user.teacherProfile) {
+            throw new ForbiddenException('Only teachers can update sessions');
+        }
+
+        const session = await this.prisma.classSession.findUnique({
+            where: { id: sessionId },
+        });
+
+        if (!session) {
+            throw new NotFoundException('Session not found');
+        }
+
+        if (session.teacherProfileId !== user.teacherProfile.id) {
+            throw new ForbiddenException('You can only update your own sessions');
+        }
+
+        const updated = await this.prisma.classSession.update({
+            where: { id: sessionId },
+            data: {
+                ...dto,
+                scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined,
+            },
+        });
+
+        return updated;
+    }
+
+    async deleteSession(userId: string, sessionId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { teacherProfile: true },
+        });
+
+        if (!user || user.role !== UserRole.TEACHER || !user.teacherProfile) {
+            throw new ForbiddenException('Only teachers can delete sessions');
+        }
+
+        const session = await this.prisma.classSession.findUnique({
+            where: { id: sessionId },
+        });
+
+        if (!session) {
+            throw new NotFoundException('Session not found');
+        }
+
+        if (session.teacherProfileId !== user.teacherProfile.id) {
+            throw new ForbiddenException('You can only delete your own sessions');
+        }
+
+        await this.prisma.classSession.delete({
+            where: { id: sessionId },
+        });
+
+        return { message: 'Session deleted successfully' };
     }
 }

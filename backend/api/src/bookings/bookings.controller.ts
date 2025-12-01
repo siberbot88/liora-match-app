@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Patch,
+    Body,
+    Param,
+    UseGuards,
+    Query,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -9,48 +18,93 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 
 @ApiTags('Bookings')
-@ApiBearerAuth('JWT-auth')
 @Controller('bookings')
-@UseGuards(JwtAuthGuard)
 export class BookingsController {
     constructor(private readonly bookingsService: BookingsService) { }
 
-    @Get('me')
-    @ApiOperation({ summary: 'Get my bookings' })
-    @ApiResponse({ status: 200, description: 'My bookings (student or teacher)' })
-    async getMyBookings(@CurrentUser() user: any) {
-        return this.bookingsService.findMyBookings(user.userId);
-    }
-
-    @Get(':id')
-    @ApiOperation({ summary: 'Get booking detail' })
-    @ApiResponse({ status: 200, description: 'Booking detail retrieved' })
-    async getBooking(@CurrentUser() user: any, @Param('id') id: string) {
-        return this.bookingsService.findOne(user.userId, id);
-    }
+    // =============== STUDENT ENDPOINTS ===============
 
     @Post()
-    @UseGuards(RolesGuard)
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.STUDENT)
-    @ApiOperation({ summary: 'Create booking (student only)' })
-    @ApiResponse({ status: 201, description: 'Booking created successfully' })
-    async createBooking(@CurrentUser() user: any, @Body() dto: CreateBookingDto) {
+    @ApiOperation({ summary: 'Create booking (Student only)' })
+    @ApiResponse({ status: 201, description: 'Booking created with PENDING status' })
+    @ApiResponse({ status: 400, description: 'Teacher not available at requested time' })
+    async create(
+        @CurrentUser() user: any,
+        @Body() dto: CreateBookingDto,
+    ) {
         return this.bookingsService.create(user.userId, dto);
     }
 
-    @Patch(':id/confirm')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.TEACHER)
-    @ApiOperation({ summary: 'Confirm booking (teacher only)' })
-    @ApiResponse({ status: 200, description: 'Booking confirmed' })
-    async confirmBooking(@CurrentUser() user: any, @Param('id') id: string) {
-        return this.bookingsService.confirm(user.userId, id);
+    @Get('me')
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.STUDENT, UserRole.TEACHER)
+    @ApiOperation({ summary: 'Get my bookings (Role-aware)' })
+    @ApiResponse({ status: 200, description: 'Student: bookings made, Teacher: bookings received' })
+    async getMyBookings(
+        @CurrentUser() user: any,
+        @Query('status') status?: string,
+    ) {
+        return this.bookingsService.getMyBookings(user.userId, user.role, status);
     }
 
     @Patch(':id/cancel')
-    @ApiOperation({ summary: 'Cancel booking (student or teacher)' })
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.STUDENT, UserRole.TEACHER)
+    @ApiOperation({ summary: 'Cancel booking (Student or Teacher)' })
     @ApiResponse({ status: 200, description: 'Booking cancelled' })
-    async cancelBooking(@CurrentUser() user: any, @Param('id') id: string) {
-        return this.bookingsService.cancel(user.userId, id);
+    async cancel(
+        @CurrentUser() user: any,
+        @Param('id') bookingId: string,
+    ) {
+        return this.bookingsService.cancel(user.userId, user.role, bookingId);
+    }
+
+    // =============== TEACHER ENDPOINTS ===============
+
+    @Patch(':id/confirm')
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.TEACHER)
+    @ApiOperation({ summary: 'Confirm booking (Teacher only)' })
+    @ApiResponse({ status: 200, description: 'Booking confirmed' })
+    @ApiResponse({ status: 403, description: 'Only teacher can confirm their own bookings' })
+    async confirm(
+        @CurrentUser() user: any,
+        @Param('id') bookingId: string,
+    ) {
+        return this.bookingsService.confirm(user.userId, bookingId);
+    }
+
+    @Patch(':id/complete')
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.TEACHER)
+    @ApiOperation({ summary: 'Mark booking as completed (Teacher only)' })
+    @ApiResponse({ status: 200, description: 'Booking marked as completed' })
+    async complete(
+        @CurrentUser() user: any,
+        @Param('id') bookingId: string,
+    ) {
+        return this.bookingsService.complete(user.userId, bookingId);
+    }
+
+    // =============== COMMON ENDPOINTS ===============
+
+    @Get(':id')
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.STUDENT, UserRole.TEACHER)
+    @ApiOperation({ summary: 'Get booking detail' })
+    @ApiResponse({ status: 200, description: 'Booking detail retrieved' })
+    async findOne(
+        @CurrentUser() user: any,
+        @Param('id') id: string,
+    ) {
+        return this.bookingsService.findOne(user.userId, user.role, id);
     }
 }
