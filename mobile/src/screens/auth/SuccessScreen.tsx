@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
         marginBottom: theme.spacing.xl,
     },
     title: {
-        fontWeight: theme.typography.weights.bold,
+        fontFamily: theme.typography.weights.bold,
         marginBottom: theme.spacing.lg,
         color: theme.colors.text,
     },

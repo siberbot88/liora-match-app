@@ -9,18 +9,26 @@ import { LButton } from '../../components/ui/LButton';
 import { theme } from '../../theme/theme';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useAuthStore } from '../../store/authStore';
+
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export function LoginScreen() {
     const navigation = useNavigation<NavigationProp>();
+    const login = useAuthStore(state => state.login);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const handleLogin = () => {
-        // Implement login logic here
-        // For now, navigate to Success or directly to Student
-        // @ts-ignore
-        navigation.replace('Student');
+        // Simulate successful login
+        login({
+            id: '1',
+            email: email || 'student@example.com',
+            name: 'Student User',
+            role: 'STUDENT',
+        }, 'dummy-token');
+
+        // No need to navigate manually, RootNavigator will handle it based on auth state
     };
 
     return (
@@ -132,7 +140,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     title: {
-        fontWeight: theme.typography.weights.bold,
+        fontFamily: theme.typography.weights.bold,
         marginBottom: theme.spacing.xl,
         alignSelf: 'flex-start',
     },

@@ -22,10 +22,10 @@ export const typography = {
         '5xl': 56,
     },
     weights: {
-        regular: '400',
-        medium: '500',
-        semibold: '600',
-        bold: '700',
+        regular: 'Poppins_400Regular',
+        medium: 'Poppins_500Medium',
+        semibold: 'Poppins_600SemiBold',
+        bold: 'Poppins_700Bold',
     } as const,
 };
 
@@ -34,5 +34,24 @@ export const fontStyle = (size: keyof typeof typography.sizes): TextStyle => {
         fontSize: typography.sizes[size],
         lineHeight: typography.lineHeights[size],
         color: '#1B262C', // default text color
+        fontFamily: 'Poppins_400Regular', // Default font
     };
+};
+
+export const textStyles = {
+    buttonSmall: {
+        fontSize: typography.sizes.sm,
+        fontFamily: typography.weights.semibold,
+        lineHeight: typography.lineHeights.sm,
+    } as TextStyle,
+    button: {
+        fontSize: typography.sizes.md,
+        fontFamily: typography.weights.semibold,
+        lineHeight: typography.lineHeights.md,
+    } as TextStyle,
+    buttonLarge: {
+        fontSize: typography.sizes.lg,
+        fontFamily: typography.weights.bold,
+        lineHeight: typography.lineHeights.lg,
+    } as TextStyle,
 };

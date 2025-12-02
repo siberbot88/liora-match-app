@@ -10,6 +10,7 @@ import {
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTeacherDetail } from '../../hooks/useTeachers';
+import { theme } from '../../theme';
 
 export function TeacherDetailScreen() {
     const route = useRoute();
@@ -20,7 +21,7 @@ export function TeacherDetailScreen() {
     if (isLoading) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#007AFF" />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
         );
     }
@@ -38,7 +39,7 @@ export function TeacherDetailScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.avatar}>
-                    <Ionicons name="person" size={48} color="#007AFF" />
+                    <Ionicons name="person" size={48} color={theme.colors.primary} />
                 </View>
                 <Text style={styles.name}>{teacher.user.name}</Text>
                 <Text style={styles.education}>{teacher.education}</Text>
@@ -50,7 +51,7 @@ export function TeacherDetailScreen() {
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Ionicons name="time" size={20} color="#007AFF" />
+                        <Ionicons name="time" size={20} color={theme.colors.primary} />
                         <Text style={styles.statText}>{teacher.experience} tahun</Text>
                     </View>
                 </View>
@@ -112,7 +113,7 @@ export function TeacherDetailScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9F9F9',
+        backgroundColor: theme.colors.background,
     },
     centered: {
         flex: 1,
@@ -120,129 +121,129 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        backgroundColor: '#FFFFFF',
-        padding: 24,
+        backgroundColor: theme.colors.white,
+        padding: theme.spacing.xl,
         alignItems: 'center',
         borderBottomWidth: 1,
-        borderBottomColor: '#F2F2F7',
+        borderBottomColor: theme.colors.border,
     },
     avatar: {
         width: 80,
         height: 80,
         borderRadius: 40,
-        backgroundColor: '#E5F1FF',
+        backgroundColor: theme.colors.gray[100],
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: theme.spacing.md,
     },
     name: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1C1C1E',
-        marginBottom: 4,
+        fontSize: theme.typography.sizes['2xl'],
+        fontFamily: theme.typography.weights.bold,
+        color: theme.colors.text,
+        marginBottom: theme.spacing.xs,
     },
     education: {
-        fontSize: 16,
-        color: '#8E8E93',
-        marginBottom: 16,
+        fontSize: theme.typography.sizes.lg,
+        color: theme.colors.textSecondary,
+        marginBottom: theme.spacing.md,
     },
     stats: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        gap: theme.spacing.md,
     },
     statItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: theme.spacing.xs,
     },
     statDivider: {
         width: 1,
         height: 20,
-        backgroundColor: '#C7C7CC',
+        backgroundColor: theme.colors.gray[300],
     },
     statText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#3A3A3C',
+        fontSize: theme.typography.sizes.lg,
+        fontFamily: theme.typography.weights.semibold,
+        color: theme.colors.secondary,
     },
     section: {
-        backgroundColor: '#FFFFFF',
-        marginTop: 12,
-        padding: 20,
+        backgroundColor: theme.colors.white,
+        marginTop: theme.spacing.sm,
+        padding: theme.spacing.lg,
     },
     sectionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#1C1C1E',
-        marginBottom: 12,
+        fontSize: theme.typography.sizes.xl,
+        fontFamily: theme.typography.weights.semibold,
+        color: theme.colors.text,
+        marginBottom: theme.spacing.md,
     },
     bio: {
-        fontSize: 15,
-        lineHeight: 22,
-        color: '#3A3A3C',
+        fontSize: theme.typography.sizes.md,
+        lineHeight: theme.typography.lineHeights.md,
+        color: theme.colors.secondary,
     },
     subjectCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 12,
-        backgroundColor: '#F9F9F9',
-        borderRadius: 8,
-        marginBottom: 8,
+        padding: theme.spacing.sm,
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.radii.md,
+        marginBottom: theme.spacing.sm,
     },
     subjectIcon: {
-        fontSize: 24,
-        marginRight: 12,
+        fontSize: theme.typography.sizes['2xl'],
+        marginRight: theme.spacing.sm,
     },
     subjectName: {
-        fontSize: 16,
-        color: '#1C1C1E',
+        fontSize: theme.typography.sizes.lg,
+        color: theme.colors.text,
     },
     slotCard: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 12,
-        backgroundColor: '#F9F9F9',
-        borderRadius: 8,
-        marginBottom: 8,
+        padding: theme.spacing.sm,
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.radii.md,
+        marginBottom: theme.spacing.sm,
     },
     slotDay: {
-        fontSize: 15,
-        fontWeight: '500',
-        color: '#1C1C1E',
+        fontSize: theme.typography.sizes.md,
+        fontFamily: theme.typography.weights.medium,
+        color: theme.colors.text,
     },
     slotTime: {
-        fontSize: 14,
-        color: '#8E8E93',
+        fontSize: theme.typography.sizes.sm,
+        color: theme.colors.textSecondary,
     },
     priceSection: {
-        backgroundColor: '#FFFFFF',
-        padding: 20,
-        marginTop: 12,
+        backgroundColor: theme.colors.white,
+        padding: theme.spacing.lg,
+        marginTop: theme.spacing.sm,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     priceLabel: {
-        fontSize: 14,
-        color: '#8E8E93',
-        marginBottom: 4,
+        fontSize: theme.typography.sizes.sm,
+        color: theme.colors.textSecondary,
+        marginBottom: theme.spacing.xs,
     },
     price: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#007AFF',
+        fontSize: theme.typography.sizes['2xl'],
+        fontFamily: theme.typography.weights.bold,
+        color: theme.colors.primary,
     },
     bookButton: {
-        backgroundColor: '#007AFF',
-        paddingHorizontal: 24,
-        paddingVertical: 14,
-        borderRadius: 10,
+        backgroundColor: theme.colors.primary,
+        paddingHorizontal: theme.spacing.xl,
+        paddingVertical: theme.spacing.md,
+        borderRadius: theme.radii.md,
     },
     bookButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
+        color: theme.colors.white,
+        fontSize: theme.typography.sizes.lg,
+        fontFamily: theme.typography.weights.semibold,
     },
 });

@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.gray[300],
     },
     text: {
-        fontWeight: theme.typography.weights.semibold,
-        color: theme.colors.secondary, // Contrast text for button color
+        fontFamily: theme.typography.weights.semibold,
+        color: theme.colors.white, // White text for turquoise button
     }
 });

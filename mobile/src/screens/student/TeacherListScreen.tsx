@@ -4,24 +4,29 @@ import {
     FlatList,
     StyleSheet,
     ActivityIndicator,
+    TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTeachers } from '../../hooks/useTeachers';
-import { Card, Text, Avatar, Badge, Button } from '../../components/ui';
+import { LText, LButton } from '../../components/ui';
 import { theme } from '../../theme';
+import { HomeStackParamList } from '../../types/navigation';
+
+type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
 export function TeacherListScreen() {
-    const navigation = useNavigation();
+    const navigation = useNavigation<NavigationProp>();
     const { data, isLoading, error, refetch } = useTeachers();
 
     if (isLoading) {
         return (
             <View style={styles.centered}>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
-                <Text variant="body" color={theme.colors.textSecondary} style={styles.loadingText}>
+                <LText variant="md" color={theme.colors.textSecondary} style={styles.loadingText}>
                     Memuat daftar guru...
-                </Text>
+                </LText>
             </View>
         );
     }
@@ -29,16 +34,18 @@ export function TeacherListScreen() {
     if (error) {
         return (
             <View style={styles.centered}>
-                <Ionicons name="alert-circle" size={48} color={theme.colors.error} />
-                <Text variant="body" weight="semibold" style={styles.errorText}>
+                <LText variant="lg" color={theme.colors.error} style={styles.errorText}>
                     Gagal memuat data
-                </Text>
-                <Text variant="bodySmall" color={theme.colors.textSecondary} style={styles.errorSubtext}>
-                    {error.message}
-                </Text>
-                <Button variant="primary" onPress={() => refetch()} style={styles.retryButton}>
-                    Coba Lagi
-                </Button>
+                </LText>
+                <LText variant="md" color={theme.colors.textSecondary} style={styles.errorSubtext}>
+                    {error.message || 'Terjadi kesalahan'}
+                </LText>
+                <LButton
+                    title="Coba Lagi"
+                    variant="primary"
+                    onPress={() => refetch()}
+                    style={styles.retryButton}
+                />
             </View>
         );
     }
@@ -51,58 +58,62 @@ export function TeacherListScreen() {
                 data={teachers}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <Card
-                        variant="elevated"
-                        padding="md"
+                    <TouchableOpacity
                         style={styles.card}
                         onPress={() => navigation.navigate('TeacherDetail', { id: item.id })}
                     >
                         <View style={styles.cardHeader}>
-                            <Avatar name={item.user.name} size="lg" />
+                            <View style={styles.avatar}>
+                                <LText variant="xl" color={theme.colors.primary}>
+                                    {item.user.name.charAt(0).toUpperCase()}
+                                </LText>
+                            </View>
                             <View style={styles.cardInfo}>
-                                <Text variant="body" weight="semibold">
+                                <LText variant="lg" style={{ fontFamily: theme.typography.weights.semibold }}>
                                     {item.user.name}
-                                </Text>
-                                <Text variant="bodySmall" color={theme.colors.textSecondary} numberOfLines={1}>
+                                </LText>
+                                <LText variant="sm" color={theme.colors.textSecondary} numberOfLines={1}>
                                     {item.education}
-                                </Text>
+                                </LText>
                             </View>
                         </View>
 
-                        <Text variant="bodySmall" color={theme.colors.text} numberOfLines={2} style={styles.bio}>
+                        <LText variant="sm" numberOfLines={2} style={styles.bio}>
                             {item.bio}
-                        </Text>
+                        </LText>
 
                         <View style={styles.subjects}>
                             {item.subjects.slice(0, 3).map((ts) => (
-                                <Badge key={ts.id} variant="neutral" size="sm">
-                                    {`${ts.subject.icon} ${ts.subject.name}`}
-                                </Badge>
+                                <View key={ts.id} style={styles.badge}>
+                                    <LText variant="sm" color={theme.colors.primary}>
+                                        {`${ts.subject.icon} ${ts.subject.name}`}
+                                    </LText>
+                                </View>
                             ))}
                         </View>
 
                         <View style={styles.cardFooter}>
                             <View style={styles.rating}>
                                 <Ionicons name="star" size={16} color="#FFD700" />
-                                <Text variant="bodySmall" style={styles.ratingText}>
+                                <LText variant="sm" style={styles.ratingText}>
                                     {item.rating.toFixed(1)} ({item.totalReviews})
-                                </Text>
+                                </LText>
                             </View>
-                            <Text variant="body" weight="semibold" color={theme.colors.primary}>
+                            <LText variant="md" style={{ fontFamily: theme.typography.weights.semibold }} color={theme.colors.primary}>
                                 Rp {item.hourlyRate.toLocaleString('id-ID')}/jam
-                            </Text>
+                            </LText>
                         </View>
-                    </Card>
+                    </TouchableOpacity>
                 )}
                 ListEmptyComponent={
                     <View style={styles.centered}>
                         <Ionicons name="school" size={64} color={theme.colors.border} />
-                        <Text variant="body" color={theme.colors.textSecondary} style={styles.emptyText}>
+                        <LText variant="md" color={theme.colors.textSecondary} style={styles.emptyText}>
                             Belum ada guru tersedia
-                        </Text>
+                        </LText>
                     </View>
                 }
-                contentContainerStyle={teachers.length === 0 && styles.emptyContainer}
+                contentContainerStyle={teachers.length === 0 ? styles.emptyContainer : undefined}
             />
         </View>
     );
@@ -133,8 +144,24 @@ const styles = StyleSheet.create({
         marginTop: theme.spacing.xl,
     },
     card: {
+        backgroundColor: theme.colors.white,
+        borderRadius: theme.radii.lg,
+        padding: theme.spacing.md,
         marginHorizontal: theme.spacing.lg,
         marginVertical: theme.spacing.sm,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    avatar: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: theme.colors.gray[100],
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -148,12 +175,19 @@ const styles = StyleSheet.create({
     bio: {
         marginBottom: theme.spacing.md,
         lineHeight: 20,
+        color: theme.colors.secondary,
     },
     subjects: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         marginBottom: theme.spacing.md,
         gap: theme.spacing.sm,
+    },
+    badge: {
+        backgroundColor: `${theme.colors.primary}26`,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: theme.radii.full,
     },
     cardFooter: {
         flexDirection: 'row',

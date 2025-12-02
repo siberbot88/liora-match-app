@@ -24,10 +24,10 @@ export function RegisterScreen() {
 
     const handleRegister = () => {
         // Implement registration logic here
-        // For now, navigate to Success
+        // For now, navigate to Success then Login
         navigation.navigate('Success', {
             message: 'Selamat! Proses autentikasi akun anda telah berhasil',
-            nextScreen: 'Login' // Or directly to Student/Main
+            nextScreen: 'Login'
         });
     };
 
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     title: {
-        fontWeight: theme.typography.weights.bold,
+        fontFamily: theme.typography.weights.bold,
         marginBottom: theme.spacing.xl,
         alignSelf: 'flex-start',
     },

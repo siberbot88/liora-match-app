@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     name: {
-        fontWeight: theme.typography.weights.semibold,
+        fontFamily: theme.typography.weights.semibold,
         flex: 1,
         marginRight: 8,
     },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     },
     ratingText: {
         marginLeft: 4,
-        fontWeight: theme.typography.weights.medium,
+        fontFamily: theme.typography.weights.medium,
     },
     rate: {
         marginTop: 2,

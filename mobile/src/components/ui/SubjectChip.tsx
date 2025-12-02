@@ -32,6 +32,6 @@ const styles = StyleSheet.create({
     },
     text: {
         color: theme.colors.primary,
-        fontWeight: theme.typography.weights.medium,
+        fontFamily: theme.typography.weights.medium,
     }
 });

@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: theme.spacing.lg,
     },
     title: {
-        fontWeight: theme.typography.weights.bold,
+        fontFamily: theme.typography.weights.bold,
         marginBottom: theme.spacing.sm,
     },
     subtitle: {
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
         resizeMode: 'contain',
     },
     welcomeText: {
-        fontWeight: theme.typography.weights.bold,
+        fontFamily: theme.typography.weights.bold,
         marginBottom: theme.spacing.sm,
     },
     description: {
