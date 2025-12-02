@@ -93,7 +93,7 @@ export async function loginToBackend(
  */
 export async function getCurrentUser() {
     try {
-        const { data } = await api.get('/auth/me');
+        const { data } = await api.get('/auth/profile'); // Fixed: was /auth/me
         return data;
     } catch (error: any) {
         console.error('Get current user error:', error);

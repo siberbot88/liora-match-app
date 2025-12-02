@@ -29,7 +29,10 @@
             "favicon": "./assets/favicon.png"
         },
         "extra": {
-            "apiUrl": process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api"
-        }
+            "apiUrl": "http://192.168.43.237:3000/api"
+        },
+        "plugins": [
+            "expo-router"
+        ]
     }
 }
