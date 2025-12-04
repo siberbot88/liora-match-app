@@ -26,10 +26,10 @@ export function WelcomeScreen() {
 
                 <View style={styles.illustrationContainer}>
                     <Image
-                        source={require('../../assets/auth/welcome_img.png')}
+                        source={require('../../../assets/auth/welcome_img.png')}
                         style={styles.image}
                     />
-                    <View style={styles.shadow} />
+
                 </View>
 
                 <LText variant="2xl" color={theme.colors.primary} style={styles.welcomeText}>
@@ -56,11 +56,7 @@ export function WelcomeScreen() {
                 </View>
 
                 {/* Pagination Dots */}
-                <View style={styles.paginationContainer}>
-                    <View style={styles.dot} />
-                    <View style={styles.dot} />
-                    <View style={[styles.dot, styles.activeDot]} />
-                </View>
+
             </View>
         </LContainer>
     );
@@ -96,8 +92,8 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     image: {
-        width: 280,
-        height: 280,
+        width: 320,
+        height: 320,
         resizeMode: 'contain',
         zIndex: 1,
     },

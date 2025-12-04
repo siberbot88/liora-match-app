@@ -34,6 +34,28 @@ export const LButton: React.FC<LButtonProps> = ({
         }).start();
     };
 
+    const getContainerStyle = () => {
+        switch (variant) {
+            case 'outline':
+                return styles.outlineContainer;
+            case 'secondary':
+                return styles.secondaryContainer;
+            default:
+                return styles.primaryContainer;
+        }
+    };
+
+    const getTextStyle = () => {
+        switch (variant) {
+            case 'outline':
+                return styles.outlineText;
+            case 'secondary':
+                return styles.secondaryText;
+            default:
+                return styles.primaryText;
+        }
+    };
+
     return (
         <TouchableOpacity
             activeOpacity={0.9}
@@ -41,7 +63,8 @@ export const LButton: React.FC<LButtonProps> = ({
             onPressOut={onPressOut}
             disabled={disabled}
             style={[
-                styles.container,
+                styles.baseContainer,
+                getContainerStyle(),
                 fullWidth && styles.fullWidth,
                 disabled && styles.disabled,
                 style
@@ -51,7 +74,7 @@ export const LButton: React.FC<LButtonProps> = ({
             <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
                 <LText
                     variant="lg"
-                    style={styles.text}
+                    style={[styles.baseText, getTextStyle()]}
                 >
                     {title}
                 </LText>
@@ -61,8 +84,7 @@ export const LButton: React.FC<LButtonProps> = ({
 };
 
 const styles = StyleSheet.create({
-    container: {
-        backgroundColor: theme.colors.button,
+    baseContainer: {
         borderRadius: theme.radii.md,
         paddingVertical: 14,
         paddingHorizontal: 20,
@@ -75,6 +97,19 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
     },
+    primaryContainer: {
+        backgroundColor: theme.colors.button,
+    },
+    outlineContainer: {
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderColor: theme.colors.button,
+        elevation: 0, // No shadow for outline
+        shadowOpacity: 0,
+    },
+    secondaryContainer: {
+        backgroundColor: theme.colors.gray[200],
+    },
     fullWidth: {
         width: '100%',
     },
@@ -82,8 +117,16 @@ const styles = StyleSheet.create({
         opacity: 0.6,
         backgroundColor: theme.colors.gray[300],
     },
-    text: {
+    baseText: {
         fontFamily: theme.typography.weights.semibold,
-        color: theme.colors.white, // White text for turquoise button
-    }
+    },
+    primaryText: {
+        color: theme.colors.white,
+    },
+    outlineText: {
+        color: theme.colors.button,
+    },
+    secondaryText: {
+        color: theme.colors.text,
+    },
 });
