@@ -25,11 +25,11 @@ export function WelcomeScreen() {
                 </LText>
 
                 <View style={styles.illustrationContainer}>
-                    {/* Placeholder for welcome_illustration */}
-                    {/* <Image source={require('../../assets/welcome_illustration.png')} style={styles.image} /> */}
-                    <View style={styles.placeholderImage}>
-                        <LText variant="sm" color={theme.colors.gray[500]}>welcome_illustration</LText>
-                    </View>
+                    <Image
+                        source={require('../../assets/auth/welcome_img.png')}
+                        style={styles.image}
+                    />
+                    <View style={styles.shadow} />
                 </View>
 
                 <LText variant="2xl" color={theme.colors.primary} style={styles.welcomeText}>
@@ -55,15 +55,11 @@ export function WelcomeScreen() {
                     />
                 </View>
 
-                <LText variant="sm" color={theme.colors.primary} style={styles.footerText}>
-                    Atau masuk dengan
-                </LText>
-
-                {/* Social Login Placeholders */}
-                <View style={styles.socialContainer}>
-                    <View style={styles.socialIcon}><LText>G</LText></View>
-                    <View style={styles.socialIcon}><LText>F</LText></View>
-                    <View style={styles.socialIcon}><LText>X</LText></View>
+                {/* Pagination Dots */}
+                <View style={styles.paginationContainer}>
+                    <View style={styles.dot} />
+                    <View style={styles.dot} />
+                    <View style={[styles.dot, styles.activeDot]} />
                 </View>
             </View>
         </LContainer>
@@ -80,64 +76,74 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.xl,
     },
     title: {
         fontFamily: theme.typography.weights.bold,
-        marginBottom: theme.spacing.sm,
+        marginBottom: theme.spacing.xs,
+        textAlign: 'center',
     },
     subtitle: {
         textAlign: 'center',
         marginBottom: theme.spacing.xl,
         color: theme.colors.text,
+        fontSize: 14,
     },
     illustrationContainer: {
         marginBottom: theme.spacing.xl,
         alignItems: 'center',
-    },
-    placeholderImage: {
-        width: 200,
-        height: 200,
-        backgroundColor: theme.colors.gray[100],
-        borderRadius: theme.radii.lg,
-        alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
     },
     image: {
-        width: 250,
-        height: 250,
+        width: 280,
+        height: 280,
         resizeMode: 'contain',
+        zIndex: 1,
+    },
+    shadow: {
+        position: 'absolute',
+        bottom: 0,
+        width: 200,
+        height: 20,
+        backgroundColor: 'rgba(0, 150, 136, 0.2)', // Teal with low opacity
+        borderRadius: 100,
+        transform: [{ scaleX: 1.5 }],
     },
     welcomeText: {
         fontFamily: theme.typography.weights.bold,
-        marginBottom: theme.spacing.sm,
+        marginBottom: theme.spacing.xs,
+        textAlign: 'center',
     },
     description: {
         textAlign: 'center',
         marginBottom: theme.spacing.xl,
         color: theme.colors.gray[600],
-        paddingHorizontal: theme.spacing.lg,
+        paddingHorizontal: theme.spacing.md,
+        fontSize: 14,
+        lineHeight: 20,
     },
     buttonContainer: {
         width: '100%',
+        alignItems: 'center',
         gap: theme.spacing.md,
         marginBottom: theme.spacing.xl,
     },
     button: {
-        width: '100%',
+        width: '85%', // Not too wide as requested
     },
-    footerText: {
-        marginBottom: theme.spacing.md,
-    },
-    socialContainer: {
+    paginationContainer: {
         flexDirection: 'row',
-        gap: theme.spacing.md,
+        gap: 8,
+        marginTop: theme.spacing.md,
     },
-    socialIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: theme.colors.gray[100],
-        alignItems: 'center',
-        justifyContent: 'center',
-    }
+    dot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: theme.colors.gray[300],
+    },
+    activeDot: {
+        backgroundColor: theme.colors.primary,
+    },
 });

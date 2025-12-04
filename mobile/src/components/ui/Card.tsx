@@ -52,26 +52,26 @@ const getVariantStyle = (variant: CardVariant): ViewStyle => {
     switch (variant) {
         case 'default':
             return {
-                backgroundColor: colors.surface,
+                backgroundColor: colors.white,
                 borderWidth: 0,
             };
 
         case 'outlined':
             return {
-                backgroundColor: colors.surface,
+                backgroundColor: colors.white,
                 borderWidth: 1,
                 borderColor: colors.border,
             };
 
         case 'elevated':
             return {
-                backgroundColor: colors.surface,
+                backgroundColor: colors.white,
                 ...shadows.md,
             };
 
         default:
             return {
-                backgroundColor: colors.surface,
+                backgroundColor: colors.white,
             };
     }
 };

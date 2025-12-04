@@ -22,4 +22,5 @@ export const colors = {
     textSecondary: '#757575', // gray.500
     border: '#E0E0E0', // gray.200
     error: '#FF3B30',
+    success: '#34C759',
 };

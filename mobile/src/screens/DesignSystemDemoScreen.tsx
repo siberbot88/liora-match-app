@@ -42,10 +42,6 @@ export function DesignSystemDemoScreen() {
                     <Text variant="bodySmall">Secondary</Text>
                 </View>
                 <View style={styles.colorRow}>
-                    <View style={[styles.colorBox, { backgroundColor: colors.accent }]} />
-                    <Text variant="bodySmall">Accent</Text>
-                </View>
-                <View style={styles.colorRow}>
                     <View style={[styles.colorBox, { backgroundColor: colors.success }]} />
                     <Text variant="bodySmall">Success</Text>
                 </View>
@@ -83,7 +79,7 @@ export function DesignSystemDemoScreen() {
                 <View style={{ height: spacing.sm }} />
                 <Button variant="ghost" onPress={() => { }}>Ghost Button</Button>
 
-                <Text variant="bodySmall" weight="medium" style={[styles.label, { marginTop: spacing.lg }]}>
+                <Text variant="bodySmall" weight="medium" style={{ ...styles.label, marginTop: spacing.lg }}>
                     Sizes
                 </Text>
                 <Button size="sm" onPress={() => { }}>Small</Button>
@@ -92,14 +88,14 @@ export function DesignSystemDemoScreen() {
                 <View style={{ height: spacing.sm }} />
                 <Button size="lg" onPress={() => { }}>Large</Button>
 
-                <Text variant="bodySmall" weight="medium" style={[styles.label, { marginTop: spacing.lg }]}>
+                <Text variant="bodySmall" weight="medium" style={{ ...styles.label, marginTop: spacing.lg }}>
                     States
                 </Text>
                 <Button loading onPress={() => { }}>Loading</Button>
                 <View style={{ height: spacing.sm }} />
                 <Button disabled onPress={() => { }}>Disabled</Button>
 
-                <Text variant="bodySmall" weight="medium" style={[styles.label, { marginTop: spacing.lg }]}>
+                <Text variant="bodySmall" weight="medium" style={{ ...styles.label, marginTop: spacing.lg }}>
                     With Icons
                 </Text>
                 <Button
@@ -197,13 +193,13 @@ export function DesignSystemDemoScreen() {
 
                 <View style={{ height: spacing.md }} />
 
-                <Card variant="elevated" padding="md" onPress={() => alert('Card pressed!')}>
+                <Card variant="elevated" padding="md" onPress={() => console.log('Card pressed!')}>
                     <Text variant="body" weight="semibold">Touchable Card</Text>
                     <Text variant="bodySmall">Tap me!</Text>
                 </Card>
             </View>
 
-            <View style={{ height: spacing['4xl'] }} />
+            <View style={{ height: 40 }} />
         </ScrollView>
     );
 }

@@ -20,7 +20,6 @@ export class TeachersService {
 
         const where: any = {
             user: {
-                isActive: true,
                 role: UserRole.TEACHER,
             },
         };
