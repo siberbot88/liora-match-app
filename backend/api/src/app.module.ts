@@ -19,6 +19,12 @@ import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { HealthModule } from './health/health.module';
+import { SubjectsModule } from './subjects/subjects.module';
+import { BannersModule } from './banners/banners.module';
+import { AdminsModule } from './admins/admins.module';
+import { ClassSectionsModule } from './class-sections/class-sections.module';
+import { ClassLessonsModule } from './class-lessons/class-lessons.module';
+import { ClassResourcesModule } from './class-resources/class-resources.module';
 
 @Module({
     imports: [
@@ -37,11 +43,15 @@ import { HealthModule } from './health/health.module';
         // Firebase Admin SDK
         FirebaseModule,
 
+
         AuthModule,
         UsersModule,
         TeachersModule,
         StudentsModule,
         ClassesModule,
+        ClassSectionsModule,
+        ClassLessonsModule,
+        ClassResourcesModule,
         BookingsModule,
         MessagesModule,
 
@@ -52,6 +62,11 @@ import { HealthModule } from './health/health.module';
         NotificationsModule,
         CalendarModule,
         HealthModule,
+
+        // Student Dashboard APIs
+        SubjectsModule,
+        BannersModule,
+        AdminsModule,
     ],
     controllers: [AppController],
     providers: [AppService],

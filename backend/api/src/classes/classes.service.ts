@@ -1,35 +1,70 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    ForbiddenException,
+    BadRequestException
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueryClassesDto } from './dto/query-classes.dto';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
-import { CreateSessionDto } from './dto/create-session.dto';
-import { UserRole } from '@prisma/client';
+import { PublishClassDto } from './dto/publish-class.dto';
+import { TeachingType, PriceModel } from '@prisma/client';
 
 @Injectable()
 export class ClassesService {
     constructor(private prisma: PrismaService) { }
 
+    /**
+     * Find all classes with filtering, search, and pagination
+     */
     async findAll(query: QueryClassesDto) {
-        const { subjectId, mode, search, page = 1, limit = 10 } = query;
+        const {
+            page = 1,
+            limit = 10,
+            search,
+            jenjang,
+            teachingType,
+            teacherProfileId,
+            subject,
+            isPublished
+        } = query;
+
         const skip = (page - 1) * limit;
 
-        const where: any = {
-            isActive: true,
-        };
+        const where: any = {};
 
-        if (subjectId) {
-            where.subjectId = subjectId;
+        // Filter by jenjang
+        if (jenjang) {
+            where.jenjang = jenjang;
         }
 
-        if (mode) {
-            where.mode = mode;
+        // Filter by teaching type
+        if (teachingType) {
+            where.teachingType = teachingType;
         }
 
+        // Filter by teacher
+        if (teacherProfileId) {
+            where.teacherProfileId = teacherProfileId;
+        }
+
+        // Filter by subject
+        if (subject) {
+            where.subject = { contains: subject, mode: 'insensitive' };
+        }
+
+        // Filter by published status
+        if (isPublished !== undefined) {
+            where.isPublished = isPublished;
+        }
+
+        // Search in title and descriptions
         if (search) {
             where.OR = [
                 { title: { contains: search, mode: 'insensitive' } },
-                { description: { contains: search, mode: 'insensitive' } },
+                { descriptionShort: { contains: search, mode: 'insensitive' } },
+                { descriptionLong: { contains: search, mode: 'insensitive' } },
             ];
         }
 
@@ -39,7 +74,6 @@ export class ClassesService {
                 skip,
                 take: limit,
                 include: {
-                    subject: true,
                     teacher: {
                         include: {
                             user: {
@@ -54,18 +88,32 @@ export class ClassesService {
                     _count: {
                         select: {
                             enrollments: true,
+                            feedback: true,
+                            sections: true,
+                            resources: true,
                         },
                     },
                 },
                 orderBy: {
-                    createdAt: 'desc',
+                    lastUpdatedAt: 'desc',
                 },
             }),
             this.prisma.class.count({ where }),
         ]);
 
+        // Calculate statistics for each class
+        const classesWithStats = await Promise.all(
+            classes.map(async (classItem) => {
+                const stats = await this.calculateStatistics(classItem.id);
+                return {
+                    ...classItem,
+                    statistics: stats,
+                };
+            }),
+        );
+
         return {
-            data: classes,
+            data: classesWithStats,
             meta: {
                 total,
                 page,
@@ -75,11 +123,13 @@ export class ClassesService {
         };
     }
 
+    /**
+     * Find one class by ID with full details
+     */
     async findOne(id: string) {
         const classItem = await this.prisma.class.findUnique({
             where: { id },
             include: {
-                subject: true,
                 teacher: {
                     include: {
                         user: {
@@ -87,11 +137,21 @@ export class ClassesService {
                                 id: true,
                                 name: true,
                                 email: true,
-                                phone: true,
                                 avatar: true,
                             },
                         },
                     },
+                },
+                sections: {
+                    orderBy: { order: 'asc' },
+                    include: {
+                        lessons: {
+                            orderBy: { order: 'asc' },
+                        },
+                    },
+                },
+                resources: {
+                    orderBy: { order: 'asc' },
                 },
                 enrollments: {
                     include: {
@@ -108,11 +168,23 @@ export class ClassesService {
                         },
                     },
                 },
-                sessions: {
-                    orderBy: {
-                        scheduledAt: 'desc',
+                feedback: {
+                    include: {
+                        student: {
+                            include: {
+                                user: {
+                                    select: {
+                                        name: true,
+                                        avatar: true,
+                                    },
+                                },
+                            },
+                        },
                     },
-                    take: 5,
+                    orderBy: {
+                        createdAt: 'desc',
+                    },
+                    take: 10,
                 },
             },
         });
@@ -121,46 +193,63 @@ export class ClassesService {
             throw new NotFoundException('Class not found');
         }
 
-        return classItem;
+        // Calculate statistics
+        const statistics = await this.calculateStatistics(id);
+
+        return {
+            ...classItem,
+            statistics,
+        };
     }
 
-    async create(userId: string, dto: CreateClassDto) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { teacherProfile: true },
+    /**
+     * Create a new class
+     */
+    async create(dto: CreateClassDto) {
+        // Validate teacher exists
+        const teacher = await this.prisma.teacherProfile.findUnique({
+            where: { id: dto.teacherProfileId },
         });
 
-        if (!user || user.role !== UserRole.TEACHER) {
-            throw new ForbiddenException('Only teachers can create classes');
-        }
-
-        if (!user.teacherProfile) {
+        if (!teacher) {
             throw new NotFoundException('Teacher profile not found');
         }
 
-        // Verify subject exists
-        const subject = await this.prisma.subject.findUnique({
-            where: { id: dto.subjectId },
-        });
+        // Auto-determine priceModel based on teachingType if not provided
+        const teachingType = dto.teachingType || TeachingType.ONLINE_COURSE;
+        const priceModel = dto.priceModel || (
+            teachingType === TeachingType.ONLINE_COURSE
+                ? PriceModel.LIFETIME_ACCESS
+                : PriceModel.PER_SESSION
+        );
 
-        if (!subject) {
-            throw new NotFoundException('Subject not found');
+        // Validate price for PER_SESSION model
+        if (priceModel === PriceModel.PER_SESSION && (!dto.price || dto.price <= 0)) {
+            throw new BadRequestException('Price must be greater than 0 for per-session pricing');
         }
 
+        // Create the class
         const newClass = await this.prisma.class.create({
             data: {
+                teacherProfileId: dto.teacherProfileId,
                 title: dto.title,
-                description: dto.description,
-                subjectId: dto.subjectId,
-                teacherProfileId: user.teacherProfile.id,
-                mode: dto.mode,
-                location: dto.location,
-                maxStudents: dto.maxStudents,
-                pricePerSession: 50000,
-                duration: 60,
+                subtitle: dto.subtitle,
+                descriptionShort: dto.descriptionShort,
+                descriptionLong: dto.descriptionLong,
+                subject: dto.subject,
+                jenjang: dto.jenjang,
+                levelRange: dto.levelRange,
+                teachingType,
+                mainLanguage: dto.mainLanguage || 'Indonesian',
+                captionAvailable: dto.captionAvailable || false,
+                certificateAvailable: dto.certificateAvailable || false,
+                features: dto.features || [],
+                price: dto.price || 0,
+                priceModel,
+                isPublished: false, // Always start as unpublished
+                isPremium: dto.isPremium || false,
             },
             include: {
-                subject: true,
                 teacher: {
                     include: {
                         user: true,
@@ -172,33 +261,32 @@ export class ClassesService {
         return newClass;
     }
 
-    async update(userId: string, classId: string, dto: UpdateClassDto) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { teacherProfile: true },
-        });
-
-        if (!user || user.role !== UserRole.TEACHER) {
-            throw new ForbiddenException('Only teachers can update classes');
-        }
-
+    /**
+     * Update an existing class
+     */
+    async update(id: string, dto: UpdateClassDto) {
         const classItem = await this.prisma.class.findUnique({
-            where: { id: classId },
+            where: { id },
         });
 
         if (!classItem) {
             throw new NotFoundException('Class not found');
         }
 
-        if (classItem.teacherProfileId !== user.teacherProfile.id) {
-            throw new ForbiddenException('You can only update your own classes');
+        // If updating teacherProfileId, validate it exists
+        if (dto.teacherProfileId && dto.teacherProfileId !== classItem.teacherProfileId) {
+            const teacher = await this.prisma.teacherProfile.findUnique({
+                where: { id: dto.teacherProfileId },
+            });
+            if (!teacher) {
+                throw new NotFoundException('Teacher profile not found');
+            }
         }
 
         const updatedClass = await this.prisma.class.update({
-            where: { id: classId },
+            where: { id },
             data: dto,
             include: {
-                subject: true,
                 teacher: {
                     include: {
                         user: true,
@@ -210,58 +298,39 @@ export class ClassesService {
         return updatedClass;
     }
 
-    async remove(userId: string, classId: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { teacherProfile: true },
-        });
-
-        if (!user || user.role !== UserRole.TEACHER) {
-            throw new ForbiddenException('Only teachers can delete classes');
-        }
-
+    /**
+     * Soft delete a class (set isActive = false)
+     */
+    async remove(id: string) {
         const classItem = await this.prisma.class.findUnique({
-            where: { id: classId },
+            where: { id },
         });
 
         if (!classItem) {
             throw new NotFoundException('Class not found');
         }
 
-        if (classItem.teacherProfileId !== user.teacherProfile.id) {
-            throw new ForbiddenException('You can only delete your own classes');
-        }
-
         await this.prisma.class.update({
-            where: { id: classId },
+            where: { id },
             data: { isActive: false },
         });
 
         return { message: 'Class deleted successfully' };
     }
 
-    async enroll(userId: string, classId: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { studentProfile: true },
-        });
-
-        if (!user || user.role !== UserRole.STUDENT) {
-            throw new ForbiddenException('Only students can enroll in classes');
-        }
-
-        if (!user.studentProfile) {
-            throw new NotFoundException('Student profile not found');
-        }
-
+    /**
+     * Publish or unpublish a class with validation
+     */
+    async publish(id: string, dto: PublishClassDto) {
         const classItem = await this.prisma.class.findUnique({
-            where: { id: classId },
+            where: { id },
             include: {
-                _count: {
-                    select: {
-                        enrollments: true,
+                sections: {
+                    include: {
+                        lessons: true,
                     },
                 },
+                resources: true,
             },
         });
 
@@ -269,275 +338,137 @@ export class ClassesService {
             throw new NotFoundException('Class not found');
         }
 
-        if (!classItem.isActive) {
-            throw new BadRequestException('This class is not active');
+        // Validate publishing requirements
+        if (dto.isPublished) {
+            // Check required fields
+            if (!classItem.title || !classItem.descriptionShort || !classItem.subject || !classItem.jenjang) {
+                throw new BadRequestException(
+                    'Cannot publish: Missing required fields (title, descriptionShort, subject, jenjang)',
+                );
+            }
+
+            // For ONLINE_COURSE, must have sections and lessons
+            if (classItem.teachingType === TeachingType.ONLINE_COURSE) {
+                if (classItem.sections.length === 0) {
+                    throw new BadRequestException(
+                        'Cannot publish ONLINE_COURSE: Must have at least one section',
+                    );
+                }
+
+                const hasLessons = classItem.sections.some((section) => section.lessons.length > 0);
+                if (!hasLessons) {
+                    throw new BadRequestException(
+                        'Cannot publish ONLINE_COURSE: Each section must have at least one lesson',
+                    );
+                }
+            }
         }
 
-        if (classItem._count.enrollments >= classItem.maxStudents) {
-            throw new BadRequestException('Class is full');
-        }
-
-        const existingEnrollment = await this.prisma.classEnrollment.findUnique({
-            where: {
-                classId_studentProfileId: {
-                    classId: classId,
-                    studentProfileId: user.studentProfile.id,
-                },
-            },
-        });
-
-        if (existingEnrollment) {
-            throw new BadRequestException('Already enrolled in this class');
-        }
-
-        const enrollment = await this.prisma.classEnrollment.create({
-            data: {
-                studentProfileId: user.studentProfile.id,
-                classId: classId,
-            },
-            include: {
-                class: {
-                    include: {
-                        subject: true,
-                        teacher: {
-                            include: {
-                                user: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
-
-        return enrollment;
-    }
-
-    async unenroll(userId: string, classId: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { studentProfile: true },
-        });
-
-        if (!user || user.role !== UserRole.STUDENT || !user.studentProfile) {
-            throw new ForbiddenException('Only students can unenroll from classes');
-        }
-
-        const enrollment = await this.prisma.classEnrollment.findUnique({
-            where: {
-                classId_studentProfileId: {
-                    classId,
-                    studentProfileId: user.studentProfile.id,
-                },
-            },
-        });
-
-        if (!enrollment) {
-            throw new NotFoundException('Not enrolled in this class');
-        }
-
-        await this.prisma.classEnrollment.delete({
-            where: {
-                classId_studentProfileId: {
-                    classId,
-                    studentProfileId: user.studentProfile.id,
-                },
-            },
-        });
-
-        return { message: 'Successfully unenrolled from class' };
-    }
-
-    async getTeacherClasses(userId: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { teacherProfile: true },
-        });
-
-        if (!user || user.role !== UserRole.TEACHER) {
-            throw new ForbiddenException('Only teachers can access this resource');
-        }
-
-        if (!user.teacherProfile) {
-            throw new NotFoundException('Teacher profile not found');
-        }
-
-        const classes = await this.prisma.class.findMany({
-            where: {
-                teacherProfileId: user.teacherProfile.id,
-            },
-            include: {
-                subject: true,
-                _count: {
-                    select: {
-                        enrollments: true,
-                        sessions: true,
-                    },
-                },
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
-
-        return classes;
-    }
-
-    // =============== SESSION MANAGEMENT ===============
-
-    async createSession(userId: string, classId: string, dto: CreateSessionDto) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { teacherProfile: true },
-        });
-
-        if (!user || user.role !== UserRole.TEACHER || !user.teacherProfile) {
-            throw new ForbiddenException('Only teachers can create sessions');
-        }
-
-        const classItem = await this.prisma.class.findUnique({
-            where: { id: classId },
-        });
-
-        if (!classItem) {
-            throw new NotFoundException('Class not found');
-        }
-
-        if (classItem.teacherProfileId !== user.teacherProfile.id) {
-            throw new ForbiddenException('You can only create sessions for your own classes');
-        }
-
-        const session = await this.prisma.classSession.create({
-            data: {
-                classId,
-                teacherProfileId: user.teacherProfile.id,
-                title: dto.title,
-                description: dto.description,
-                scheduledAt: new Date(dto.scheduledAt),
-                duration: dto.duration,
-                meetingUrl: dto.meetingUrl,
-                notes: dto.notes,
-                status: 'SCHEDULED',
-            },
-            include: {
-                class: {
-                    include: {
-                        subject: true,
-                    },
-                },
-            },
-        });
-
-        return session;
-    }
-
-    async getSessions(classId: string) {
-        const sessions = await this.prisma.classSession.findMany({
-            where: { classId },
-            orderBy: {
-                scheduledAt: 'asc',
-            },
-            include: {
-                class: {
-                    select: {
-                        title: true,
-                        subject: true,
-                    },
-                },
-            },
-        });
-
-        return sessions;
-    }
-
-    async getSessionDetail(sessionId: string) {
-        const session = await this.prisma.classSession.findUnique({
-            where: { id: sessionId },
-            include: {
-                class: {
-                    include: {
-                        subject: true,
-                        teacher: {
-                            include: {
-                                user: {
-                                    select: {
-                                        id: true,
-                                        name: true,
-                                        avatar: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        });
-
-        if (!session) {
-            throw new NotFoundException('Session not found');
-        }
-
-        return session;
-    }
-
-    async updateSession(userId: string, sessionId: string, dto: Partial<CreateSessionDto>) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { teacherProfile: true },
-        });
-
-        if (!user || user.role !== UserRole.TEACHER || !user.teacherProfile) {
-            throw new ForbiddenException('Only teachers can update sessions');
-        }
-
-        const session = await this.prisma.classSession.findUnique({
-            where: { id: sessionId },
-        });
-
-        if (!session) {
-            throw new NotFoundException('Session not found');
-        }
-
-        if (session.teacherProfileId !== user.teacherProfile.id) {
-            throw new ForbiddenException('You can only update your own sessions');
-        }
-
-        const updated = await this.prisma.classSession.update({
-            where: { id: sessionId },
-            data: {
-                ...dto,
-                scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined,
-            },
+        // Update publish status
+        const updated = await this.prisma.class.update({
+            where: { id },
+            data: { isPublished: dto.isPublished },
         });
 
         return updated;
     }
 
-    async deleteSession(userId: string, sessionId: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: { teacherProfile: true },
+    /**
+     * Calculate statistics for a class
+     */
+    async calculateStatistics(classId: string) {
+        const classItem = await this.prisma.class.findUnique({
+            where: { id: classId },
+            include: {
+                enrollments: true,
+                feedback: true,
+                sections: {
+                    include: {
+                        lessons: true,
+                    },
+                },
+                completions: true,
+            },
         });
 
-        if (!user || user.role !== UserRole.TEACHER || !user.teacherProfile) {
-            throw new ForbiddenException('Only teachers can delete sessions');
+        if (!classItem) {
+            throw new NotFoundException('Class not found');
         }
 
-        const session = await this.prisma.classSession.findUnique({
-            where: { id: sessionId },
+        // Total enrollments
+        const totalEnrollments = classItem.enrollments.length;
+
+        // Total completions
+        const totalCompletions = classItem.completions.length;
+
+        // Average rating
+        const ratings = classItem.feedback.map((f) => f.rating);
+        const averageRating = ratings.length > 0
+            ? ratings.reduce((acc, r) => acc + r, 0) / ratings.length
+            : 0;
+
+        // Rating distribution
+        const ratingDistribution = {
+            5: ratings.filter((r) => r === 5).length,
+            4: ratings.filter((r) => r === 4).length,
+            3: ratings.filter((r) => r === 3).length,
+            2: ratings.filter((r) => r === 2).length,
+            1: ratings.filter((r) => r === 1).length,
+        };
+
+        // Total lessons and duration (for ONLINE_COURSE)
+        let totalLessons = 0;
+        let totalDurationMinutes = 0;
+
+        if (classItem.teachingType === TeachingType.ONLINE_COURSE) {
+            classItem.sections.forEach((section) => {
+                totalLessons += section.lessons.length;
+                section.lessons.forEach((lesson) => {
+                    totalDurationMinutes += lesson.durationMinutes || 0;
+                });
+            });
+        }
+
+        return {
+            totalEnrollments,
+            totalCompletions,
+            averageRating: parseFloat(averageRating.toFixed(2)),
+            totalReviews: ratings.length,
+            ratingDistribution,
+            totalLessons,
+            totalDurationMinutes,
+            totalDurationHours: parseFloat((totalDurationMinutes / 60).toFixed(2)),
+        };
+    }
+
+    /**
+     * Get curriculum structure (sections + lessons) for a class
+     */
+    async getCurriculum(classId: string) {
+        const classItem = await this.prisma.class.findUnique({
+            where: { id: classId },
+            include: {
+                sections: {
+                    orderBy: { order: 'asc' },
+                    include: {
+                        lessons: {
+                            orderBy: { order: 'asc' },
+                        },
+                    },
+                },
+            },
         });
 
-        if (!session) {
-            throw new NotFoundException('Session not found');
+        if (!classItem) {
+            throw new NotFoundException('Class not found');
         }
 
-        if (session.teacherProfileId !== user.teacherProfile.id) {
-            throw new ForbiddenException('You can only delete your own sessions');
+        if (classItem.teachingType !== TeachingType.ONLINE_COURSE) {
+            throw new BadRequestException(
+                'Curriculum is only available for ONLINE_COURSE teaching type',
+            );
         }
 
-        await this.prisma.classSession.delete({
-            where: { id: sessionId },
-        });
-
-        return { message: 'Session deleted successfully' };
+        return classItem.sections;
     }
 }

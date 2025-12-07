@@ -1,15 +1,18 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
 
 // Screens
 import { StudentHomeScreen } from '../screens/student/StudentHomeScreen';
 import { TeacherListScreen } from '../screens/student/TeacherListScreen';
 import { TeacherDetailScreen } from '../screens/student/TeacherDetailScreen';
 import { BookingFormScreen } from '../screens/student/BookingFormScreen';
+import { SearchScreen } from '../screens/student/SearchScreen';
+import { ClassesScreen } from '../screens/student/ClassesScreen';
+import { ChatScreen } from '../screens/student/ChatScreen';
 import { BookingListScreen } from '../screens/student/BookingListScreen';
 import { ProfileScreen } from '../screens/student/ProfileScreen';
+import { BottomNav } from '../components/navigation/BottomNav';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
@@ -22,8 +25,7 @@ function HomeStackNavigator() {
                 name="StudentHome"
                 component={StudentHomeScreen}
                 options={{
-                    title: 'Beranda',
-                    headerShown: true,
+                    headerShown: false,
                 }}
             />
             <HomeStack.Screen
@@ -48,41 +50,30 @@ function HomeStackNavigator() {
 export function StudentTabs() {
     return (
         <Tab.Navigator
+            tabBar={(props) => <BottomNav {...props} />}
             screenOptions={{
-                tabBarActiveTintColor: '#007AFF',
-                tabBarInactiveTintColor: '#8E8E93',
+                headerShown: false,
             }}
         >
             <Tab.Screen
                 name="Home"
                 component={HomeStackNavigator}
-                options={{
-                    headerShown: false,
-                    title: 'Beranda',
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="home" size={size} color={color} />
-                    ),
-                }}
             />
             <Tab.Screen
-                name="Bookings"
-                component={BookingListScreen}
-                options={{
-                    title: 'Jadwal Saya',
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="calendar" size={size} color={color} />
-                    ),
-                }}
+                name="Search"
+                component={SearchScreen}
+            />
+            <Tab.Screen
+                name="Classes"
+                component={ClassesScreen}
+            />
+            <Tab.Screen
+                name="Chat"
+                component={ChatScreen}
             />
             <Tab.Screen
                 name="Profile"
                 component={ProfileScreen}
-                options={{
-                    title: 'Profil',
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name="person" size={size} color={color} />
-                    ),
-                }}
             />
         </Tab.Navigator>
     );

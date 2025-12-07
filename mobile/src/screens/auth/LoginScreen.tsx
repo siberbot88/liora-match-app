@@ -22,6 +22,7 @@ export function LoginScreen() {
     const login = useAuthStore(state => state.login);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Animations
@@ -44,14 +45,62 @@ export function LoginScreen() {
         ]).start();
     }, []);
 
-    const handleLogin = () => {
-        // Simulate successful login
-        login({
-            id: '1',
-            email: email || 'student@example.com',
-            name: 'Student User',
-            role: 'STUDENT',
-        }, 'dummy-token');
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Error', 'Mohon isi email dan kata sandi');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            // Sign in with Firebase
+            const userCredential = await auth().signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+
+            // Check if email is verified
+            if (!user.emailVerified) {
+                Alert.alert(
+                    'Email Belum Diverifikasi',
+                    'Silakan cek email Anda untuk verifikasi akun.',
+                    [
+                        { text: 'OK', onPress: () => auth().signOut() },
+                        {
+                            text: 'Kirim Ulang',
+                            onPress: async () => {
+                                await user.sendEmailVerification();
+                                Alert.alert('Sukses', 'Email verifikasi telah dikirim ulang');
+                                await auth().signOut();
+                            }
+                        }
+                    ]
+                );
+                return;
+            }
+
+            // Get ID token
+            const firebaseToken = await user.getIdToken();
+
+            // Call backend
+            const response = await api.post('/auth/firebase-login', { firebaseToken });
+            const { user: userData, accessToken } = response.data;
+
+            login(userData, accessToken);
+        } catch (error: any) {
+            console.error(error);
+            let errorMessage = 'Gagal masuk';
+
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                errorMessage = 'Email atau kata sandi salah';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'Format email tidak valid';
+            } else if (error.code === 'auth/too-many-requests') {
+                errorMessage = 'Terlalu banyak percobaan, silakan coba lagi nanti';
+            }
+
+            Alert.alert('Error', errorMessage);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const onGoogleButtonPress = async () => {
@@ -114,17 +163,27 @@ export function LoginScreen() {
                         />
                     </View>
 
-                    <View style={styles.inputContainer}>
+                    <View style={[styles.inputContainer, { flexDirection: 'row', alignItems: 'center' }]}>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { flex: 1 }]}
                             placeholder="Password"
                             value={password}
                             onChangeText={setPassword}
-                            secureTextEntry
+                            secureTextEntry={!showPassword}
                         />
+                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                            <Ionicons
+                                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                size={24}
+                                color={theme.colors.gray[400]}
+                            />
+                        </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity style={styles.forgotPassword}>
+                    <TouchableOpacity
+                        style={styles.forgotPassword}
+                        onPress={() => navigation.navigate('ForgotPassword')}
+                    >
                         <LText variant="sm" color={theme.colors.primary} style={{ fontWeight: 'bold' }}>
                             Lupa Kata Sandi?
                         </LText>
@@ -135,6 +194,8 @@ export function LoginScreen() {
                         variant="primary"
                         fullWidth
                         onPress={handleLogin}
+                        loading={loading}
+                        disabled={loading}
                         style={styles.submitButton}
                     />
                 </View>

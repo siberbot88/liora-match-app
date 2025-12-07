@@ -3,7 +3,9 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { FirebaseService } from '../firebase/firebase.service';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { UserRole } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -41,7 +43,7 @@ export class AuthService {
                         name: decodedToken.name || decodedToken.email.split('@')[0],
                         firebaseUid: decodedToken.uid,
                         role: role,
-                        phone: decodedToken.phone_number,
+                        phone: dto.phone || decodedToken.phone_number,
                         avatar: decodedToken.picture,
                     },
                     include: {
@@ -111,6 +113,40 @@ export class AuthService {
         }
     }
 
+    async adminLogin(dto: AdminLoginDto) {
+        const admin = await this.prisma.admin.findUnique({
+            where: { email: dto.email },
+        });
+
+        if (!admin) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        const isPasswordValid = await bcrypt.compare(dto.password, admin.password);
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        const payload = {
+            sub: admin.id,
+            email: admin.email,
+            role: admin.role, // e.g. "SUPER_ADMIN"
+        };
+
+        const accessToken = this.jwtService.sign(payload);
+
+        return {
+            accessToken,
+            user: {
+                id: admin.id,
+                email: admin.email,
+                name: admin.name,
+                role: admin.role,
+                avatar: admin.avatar,
+            },
+        };
+    }
+
     async getCurrentUser(userId: string) {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -122,7 +158,7 @@ export class AuthService {
                             include: {
                                 class: {
                                     include: {
-                                        subject: true,
+                                        // TEMP FIX: subjectRel: true,
                                         teacher: {
                                             include: {
                                                 user: {
@@ -147,7 +183,7 @@ export class AuthService {
                             include: {
                                 class: {
                                     include: {
-                                        subject: true,
+                                        // TEMP FIX: subjectRel: true,
                                     },
                                 },
                                 teacher: {
@@ -171,7 +207,7 @@ export class AuthService {
                     include: {
                         subjects: {
                             include: {
-                                subject: true,
+                                // TEMP FIX: subjectRel: true,
                             },
                         },
                         availabilitySlots: {
@@ -184,7 +220,7 @@ export class AuthService {
                         classes: {
                             where: { isActive: true },
                             include: {
-                                subject: true,
+                                // TEMP FIX: subjectRel: true,
                                 _count: {
                                     select: {
                                         enrollments: true,
@@ -210,7 +246,7 @@ export class AuthService {
                                         },
                                     },
                                 },
-                                subject: true,
+                                // TEMP FIX: subjectRel: true,
                             },
                             take: 10,
                             orderBy: { scheduledAt: 'desc' },

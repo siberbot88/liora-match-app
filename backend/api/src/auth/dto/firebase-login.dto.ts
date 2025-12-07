@@ -9,4 +9,8 @@ export class FirebaseLoginDto {
     @IsEnum(UserRole)
     @IsOptional()
     role?: UserRole;
+
+    @IsString()
+    @IsOptional()
+    phone?: string;
 }

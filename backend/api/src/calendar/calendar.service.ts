@@ -80,7 +80,7 @@ export class CalendarService {
                             include: {
                                 class: {
                                     include: {
-                                        subject: true,
+                                        // subject: true, // Subject is now a string field, not a relation
                                     },
                                 },
                             },
@@ -90,11 +90,11 @@ export class CalendarService {
             },
         });
 
-        const sessions = enrollments.flatMap((e) => e.class.sessions);
+        // const sessions = enrollments.flatMap((e) => e.class.sessions); // Class not included in enrollment
 
         return {
             bookings,
-            sessions,
+            // sessions, // Sessions not available - class not included in enrollment
             month,
             year,
         };
@@ -145,7 +145,7 @@ export class CalendarService {
             include: {
                 class: {
                     include: {
-                        subject: true,
+                        // subject: true, // Subject is now a string field, not a relation
                     },
                 },
             },

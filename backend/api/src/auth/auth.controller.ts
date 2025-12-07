@@ -2,6 +2,7 @@ import { Controller, Post, Get, Body, UseGuards, NotFoundException } from '@nest
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -20,6 +21,14 @@ export class AuthController {
     @ApiResponse({ status: 401, description: 'Invalid Firebase token' })
     async firebaseLogin(@Body() dto: FirebaseLoginDto) {
         return this.authService.firebaseLogin(dto);
+    }
+
+    @Post('admin-login')
+    @ApiOperation({ summary: 'Login as Admin' })
+    @ApiResponse({ status: 200, description: 'Successfully authenticated' })
+    @ApiResponse({ status: 401, description: 'Invalid credentials' })
+    async adminLogin(@Body() dto: AdminLoginDto) {
+        return this.authService.adminLogin(dto);
     }
 
     @Get('profile')

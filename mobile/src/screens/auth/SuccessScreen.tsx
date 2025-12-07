@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../types/navigation';
@@ -15,41 +15,63 @@ type SuccessRouteProp = RouteProp<AuthStackParamList, 'Success'>;
 export function SuccessScreen() {
     const navigation = useNavigation<NavigationProp>();
     const route = useRoute<SuccessRouteProp>();
-    const { message, nextScreen = 'Login' } = route.params;
+    const { message, nextScreen } = route.params;
+
+    // Animations
+    const scaleAnim = useRef(new Animated.Value(0)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.sequence([
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                friction: 6,
+                tension: 40,
+                useNativeDriver: true,
+            }),
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, []);
 
     const handleNext = () => {
         if (nextScreen === 'Student') {
-            // Navigate to main app stack
-            // @ts-ignore - Root stack navigation
-            navigation.replace('Student');
-        } else {
-            // @ts-ignore
+            // Navigate to main app
+            // navigation.reset(...)
+        } else if (nextScreen) {
             navigation.navigate(nextScreen as any);
+        } else {
+            navigation.navigate('Login', {});
         }
     };
 
     return (
         <LContainer style={styles.container}>
             <View style={styles.content}>
-                <View style={styles.iconContainer}>
-                    <Ionicons name="checkmark" size={64} color={theme.colors.primary} />
-                </View>
+                <Animated.View style={[styles.iconContainer, { transform: [{ scale: scaleAnim }] }]}>
+                    <Ionicons name="checkmark" size={50} color={theme.colors.primary} />
+                </Animated.View>
 
-                <LText variant="2xl" style={styles.title}>
-                    Sukses!
-                </LText>
+                <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', width: '100%' }}>
+                    <LText variant="2xl" style={styles.title}>
+                        Sukses!
+                    </LText>
 
-                <LText variant="md" style={styles.message}>
-                    {message || 'Proses berhasil.'}
-                </LText>
+                    <LText variant="md" style={styles.message}>
+                        {message || 'Selamat! Proses autentikasi akun anda telah berhasil'}
+                    </LText>
 
-                <LButton
-                    title="Selanjutnya"
-                    variant="primary"
-                    fullWidth
-                    onPress={handleNext}
-                    style={styles.button}
-                />
+                    <LButton
+                        title="Selanjutnya"
+                        variant="primary"
+                        fullWidth
+                        onPress={handleNext}
+                        style={styles.button}
+                    />
+                </Animated.View>
             </View>
         </LContainer>
     );
@@ -62,31 +84,33 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: theme.spacing.xl,
+        alignItems: 'center',
+        paddingHorizontal: theme.spacing.lg,
     },
     iconContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        borderWidth: 4,
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        borderWidth: 3,
         borderColor: theme.colors.primary,
-        alignItems: 'center',
         justifyContent: 'center',
+        alignItems: 'center',
         marginBottom: theme.spacing.xl,
     },
     title: {
         fontFamily: theme.typography.weights.bold,
-        marginBottom: theme.spacing.lg,
         color: theme.colors.text,
+        marginBottom: theme.spacing.md,
     },
     message: {
         textAlign: 'center',
         color: theme.colors.gray[500],
         marginBottom: theme.spacing.xl * 2,
+        paddingHorizontal: theme.spacing.xl,
+        lineHeight: 24,
     },
     button: {
-        width: '100%',
-    }
+        marginTop: theme.spacing.lg,
+    },
 });

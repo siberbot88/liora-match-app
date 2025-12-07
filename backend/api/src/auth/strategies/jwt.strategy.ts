@@ -25,6 +25,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     async validate(payload: JwtPayload) {
+        // Check if it's an admin based on role or specific payload claim
+        if (payload.role === 'SUPER_ADMIN' || payload.role === 'EDITOR' || payload.role === 'VIEWER') { // Simple check, better to use a 'type' claim
+            const admin = await this.prisma.admin.findUnique({
+                where: { id: payload.sub },
+            });
+
+            if (!admin) {
+                throw new UnauthorizedException('Admin not found or inactive');
+            }
+
+            return {
+                userId: payload.sub,
+                email: payload.email,
+                role: payload.role,
+                ...admin
+            };
+        }
+
         const user = await this.prisma.user.findUnique({
             where: { id: payload.sub },
             include: {

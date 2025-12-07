@@ -1,20 +1,9 @@
-import { IsOptional, IsString, IsEnum } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ClassMode } from '@prisma/client';
+import { Jenjang, TeachingType } from '@prisma/client';
 
 export class QueryClassesDto {
-    @IsString()
-    @IsOptional()
-    subjectId?: string;
-
-    @IsEnum(ClassMode)
-    @IsOptional()
-    mode?: ClassMode;
-
-    @IsString()
-    @IsOptional()
-    search?: string;
-
+    // Pagination
     @Type(() => Number)
     @IsOptional()
     page?: number = 1;
@@ -22,4 +11,30 @@ export class QueryClassesDto {
     @Type(() => Number)
     @IsOptional()
     limit?: number = 10;
+
+    // Search & Filters
+    @IsString()
+    @IsOptional()
+    search?: string;
+
+    @IsEnum(Jenjang)
+    @IsOptional()
+    jenjang?: Jenjang;
+
+    @IsEnum(TeachingType)
+    @IsOptional()
+    teachingType?: TeachingType;
+
+    @IsString()
+    @IsOptional()
+    teacherProfileId?: string;
+
+    @IsString()
+    @IsOptional()
+    subject?: string;
+
+    @Type(() => Boolean)
+    @IsBoolean()
+    @IsOptional()
+    isPublished?: boolean;
 }

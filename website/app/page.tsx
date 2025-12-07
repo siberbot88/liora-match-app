@@ -1,30 +1,30 @@
-export default function Home() {
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+export default function HomePage() {
+    const router = useRouter();
+
+    useEffect(() => {
+        // Auto redirect to login page
+        router.push('/admin/login');
+    }, [router]);
+
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center p-24">
-            <div className="z-10 max-w-5xl w-full items-center justify-center font-mono text-sm lg:flex">
-                <div className="text-center">
-                    <h1 className="text-6xl font-bold mb-4">
-                        🚀 Liora
-                    </h1>
-                    <p className="text-2xl text-gray-600 mb-8">
-                        Landing Page - Next.js 14
-                    </p>
-                    <div className="flex gap-4 justify-center">
-                        <a
-                            href="#"
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                        >
-                            Get Started
-                        </a>
-                        <a
-                            href="#"
-                            className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
-                        >
-                            Learn More
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </main>
-    )
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            flexDirection: 'column',
+            gap: 20
+        }}>
+            <h1>Liora Admin Panel</h1>
+            <p>Redirecting to Login...</p>
+            <a href="/admin/login" style={{ color: '#1890ff' }}>
+                Click here if not redirected automatically
+            </a>
+        </div>
+    );
 }

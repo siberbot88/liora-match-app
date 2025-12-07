@@ -55,11 +55,12 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document);
 
-    const port = process.env.PORT || 3000;
-    await app.listen(port);
+    const port = process.env.PORT || 3333;
+    await app.listen(port, '0.0.0.0');
 
     console.log('🚀 Liora Backend API (Phase 3)');
-    console.log(`📡 Server: http://localhost:${port}/api`);
+    console.log(`📡 Server: http://0.0.0.0:${port}/api`);
+    console.log(`📡 Network: http://192.168.100.1:${port}/api`);
     console.log(`📚 Swagger: http://localhost:${port}/api/docs`);
     console.log(`💬 WebSocket: ws://localhost:${port}/messages`);
     console.log(`📁 Static files: http://localhost:${port}/uploads/`);

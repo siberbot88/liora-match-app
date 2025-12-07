@@ -28,6 +28,8 @@ export function RegisterScreen() {
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Animations
@@ -50,13 +52,47 @@ export function RegisterScreen() {
         ]).start();
     }, []);
 
-    const handleRegister = () => {
-        // Implement registration logic here
-        // For now, navigate to Success then Login
-        navigation.navigate('Success', {
-            message: 'Selamat! Proses autentikasi akun anda telah berhasil',
-            nextScreen: 'Login'
-        });
+    const handleRegister = async () => {
+        if (!email || !password || !confirmPassword) {
+            Alert.alert('Error', 'Mohon lengkapi semua data');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            Alert.alert('Error', 'Kata sandi tidak cocok');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            // Create user with Firebase
+            const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+
+            // Send verification email
+            await userCredential.user.sendEmailVerification();
+
+            // Navigate to verification screen with necessary data
+            navigation.navigate('Verification', {
+                email,
+                role,
+                phone
+            });
+        } catch (error: any) {
+            console.error(error);
+            let errorMessage = 'Terjadi kesalahan saat registrasi';
+
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage = 'Email sudah terdaftar';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'Format email tidak valid';
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = 'Kata sandi terlalu lemah';
+            }
+
+            Alert.alert('Registrasi Gagal', errorMessage);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const onGoogleButtonPress = async () => {
@@ -129,24 +165,38 @@ export function RegisterScreen() {
                         />
                     </View>
 
-                    <View style={styles.inputContainer}>
+                    <View style={[styles.inputContainer, { flexDirection: 'row', alignItems: 'center' }]}>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { flex: 1 }]}
                             placeholder="Kata Sandi"
                             value={password}
                             onChangeText={setPassword}
-                            secureTextEntry
+                            secureTextEntry={!showPassword}
                         />
+                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                            <Ionicons
+                                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                size={24}
+                                color={theme.colors.gray[400]}
+                            />
+                        </TouchableOpacity>
                     </View>
 
-                    <View style={styles.inputContainer}>
+                    <View style={[styles.inputContainer, { flexDirection: 'row', alignItems: 'center' }]}>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { flex: 1 }]}
                             placeholder="Konfirmasi Kata Sandi"
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
-                            secureTextEntry
+                            secureTextEntry={!showConfirmPassword}
                         />
+                        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                            <Ionicons
+                                name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                                size={24}
+                                color={theme.colors.gray[400]}
+                            />
+                        </TouchableOpacity>
                     </View>
 
                     <LButton
@@ -154,6 +204,8 @@ export function RegisterScreen() {
                         variant="primary"
                         fullWidth
                         onPress={handleRegister}
+                        loading={loading}
+                        disabled={loading}
                         style={styles.submitButton}
                     />
                 </View>

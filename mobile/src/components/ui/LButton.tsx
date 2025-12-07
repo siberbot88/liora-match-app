@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, TouchableOpacityProps, StyleSheet, ViewStyle, TextStyle, Animated } from 'react-native';
+import { TouchableOpacity, TouchableOpacityProps, StyleSheet, ViewStyle, TextStyle, Animated, ActivityIndicator } from 'react-native';
 import { theme } from '../../theme/theme';
 import { LText } from './LText';
 
@@ -7,12 +7,14 @@ export interface LButtonProps extends TouchableOpacityProps {
     title: string;
     variant?: 'primary' | 'secondary' | 'outline';
     fullWidth?: boolean;
+    loading?: boolean;
 }
 
 export const LButton: React.FC<LButtonProps> = ({
     title,
     variant = 'primary',
     fullWidth = false,
+    loading = false,
     style,
     disabled,
     ...props
@@ -56,22 +58,40 @@ export const LButton: React.FC<LButtonProps> = ({
         }
     };
 
+    const getSpinnerColor = () => {
+        switch (variant) {
+            case 'outline':
+                return theme.colors.button;
+            case 'secondary':
+                return theme.colors.text;
+            default:
+                return theme.colors.white;
+        }
+    };
+
     return (
         <TouchableOpacity
             activeOpacity={0.9}
             onPressIn={onPressIn}
             onPressOut={onPressOut}
-            disabled={disabled}
+            disabled={disabled || loading}
             style={[
                 styles.baseContainer,
                 getContainerStyle(),
                 fullWidth && styles.fullWidth,
-                disabled && styles.disabled,
+                (disabled || loading) && styles.disabled,
                 style
             ]}
             {...props}
         >
-            <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
+            <Animated.View style={{ transform: [{ scale: scaleValue }], flexDirection: 'row', alignItems: 'center' }}>
+                {loading && (
+                    <ActivityIndicator
+                        size="small"
+                        color={getSpinnerColor()}
+                        style={{ marginRight: 8 }}
+                    />
+                )}
                 <LText
                     variant="lg"
                     style={[styles.baseText, getTextStyle()]}

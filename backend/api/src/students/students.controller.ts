@@ -54,10 +54,10 @@ export class StudentsController {
     @ApiBearerAuth('JWT-auth')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(UserRole.STUDENT)
-    @ApiOperation({ summary: 'Get student dashboard data' })
+    @ApiOperation({ summary: 'Get student dashboard data (level, points, tier)' })
     @ApiResponse({ status: 200, description: 'Dashboard data retrieved' })
-    async getDashboard(@CurrentUser() user: any) {
-        return this.studentsService.getDashboard(user.userId);
+    async getStudentDashboard(@CurrentUser() user: any) {
+        return this.studentsService.getStudentDashboardData(user.userId);
     }
 
     // =============== TEACHER DISCOVERY ===============

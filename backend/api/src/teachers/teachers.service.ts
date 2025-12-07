@@ -592,7 +592,7 @@ export class TeachersService {
                 include: {
                     class: {
                         include: {
-                            subject: true,
+                            // subject: true, // Subject is now a string field, not a relation
                         },
                     },
                 },
@@ -627,7 +627,7 @@ export class TeachersService {
                 teacherProfileId: user.teacherProfile.id,
             },
             include: {
-                subject: true,
+                // subject: true, // Subject is now a string field, not a relation
                 _count: {
                     select: {
                         enrollments: true,

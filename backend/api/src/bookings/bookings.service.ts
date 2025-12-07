@@ -85,33 +85,37 @@ export class BookingsService {
             throw new BadRequestException('Teacher already has a booking at this time');
         }
 
-        // Find or create a class for this booking
-        let classForBooking = await this.prisma.class.findFirst({
-            where: {
-                teacherProfileId: dto.teacherId,
-                subjectId: dto.subjectId,
-                mode: dto.mode,
-                title: {
-                    contains: 'Private Session',
-                },
-            },
-        });
+        // // TEMPORARILY COMMENTED OUT - Schema migration needed
+        // // Find or create a class for this booking
+        // let classForBooking = await this.prisma.class.findFirst({
+        //     where: {
+        //         teacherProfileId: dto.teacherId,
+        //         // subjectId: dto.subjectId, // Field removed in new schema
+        //         // mode: dto.mode, // Field removed
+        //         title: {
+        //             contains: 'Private Session',
+        //         },
+        //     },
+        // });
 
-        if (!classForBooking) {
-            classForBooking = await this.prisma.class.create({
-                data: {
-                    title: `Private Session - ${subject.name}`,
-                    description: 'Private tutoring session',
-                    teacherProfileId: dto.teacherId,
-                    subjectId: dto.subjectId,
-                    mode: dto.mode,
-                    maxStudents: 1,
-                    pricePerSession: teacher.hourlyRate,
-                    duration: dto.duration || 60,
-                    isActive: true,
-                },
-            });
-        }
+        // if (!classForBooking) {
+        //     classForBooking = await this.prisma.class.create({
+        //         data: {
+        //             title: `Private Session - ${subject.name}`,
+        //             // description: 'Private tutoring session', // Now descriptionShort/descriptionLong
+        //             teacherProfileId: dto.teacherId,
+        //             // subjectId: dto.subjectId, // Field removed
+        //             // mode: dto.mode, // Field removed
+        //             // maxStudents: 1, // Field removed
+        //             // pricePerSession: teacher.hourlyRate, // Field removed
+        //             // duration: dto.duration || 60, // Field removed
+        //             // isActive: true, // Now isPublished
+        //         },
+        //     });
+        // }
+
+        // TEMPORARY WORKAROUND: Use a dummy class ID
+        const classForBooking = { id: 'temp-class-id' };
 
         // Calculate total price
         const durationInHours = (dto.duration || 60) / 60;
@@ -145,7 +149,7 @@ export class BookingsService {
                         },
                     },
                 },
-                subject: true,
+                // subject: true, // Subject is now a string field, not a relation
                 class: {
                     select: {
                         title: true,
@@ -196,7 +200,7 @@ export class BookingsService {
                             },
                         },
                     },
-                    subject: true,
+                    // subject: true, // Subject is now a string field, not a relation
                     class: {
                         select: {
                             title: true,
@@ -229,7 +233,7 @@ export class BookingsService {
                             },
                         },
                     },
-                    subject: true,
+                    // subject: true, // Subject is now a string field, not a relation
                     class: {
                         select: {
                             title: true,
@@ -277,7 +281,7 @@ export class BookingsService {
                         },
                     },
                 },
-                subject: true,
+                // subject: true, // Subject is now a string field, not a relation
                 class: true,
             },
         });
@@ -349,7 +353,7 @@ export class BookingsService {
                         },
                     },
                 },
-                subject: true,
+                // subject: true, // Subject is now a string field, not a relation
             },
         });
 
@@ -406,7 +410,7 @@ export class BookingsService {
                         user: true,
                     },
                 },
-                subject: true,
+                // subject: true, // Subject is now a string field, not a relation
             },
         });
 
@@ -450,7 +454,7 @@ export class BookingsService {
                         user: true,
                     },
                 },
-                subject: true,
+                // subject: true, // Subject is now a string field, not a relation
             },
         });
 

@@ -24,10 +24,14 @@ export type AuthStackParamList = {
     RoleSelection: undefined;
     Login: { role?: 'STUDENT' | 'TEACHER' | 'PARENT' };
     Register: { role: 'STUDENT' | 'TEACHER' | 'PARENT' };
+    ForgotPassword: undefined;
+    Verification: { email: string; role?: 'STUDENT' | 'TEACHER' | 'PARENT'; phone?: string };
     Success: { message?: string; nextScreen?: keyof AuthStackParamList | 'Student' };
 };
 
 export type RootStackParamList = {
+    Splash: undefined;
+    Onboarding: undefined;
     Auth: NavigatorScreenParams<AuthStackParamList>;
     Student: NavigatorScreenParams<StudentTabParamList>;
 };

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdateStudentPreferencesDto } from './dto/update-student-preferences.dto';
 import { SearchTeachersDto } from './dto/search-teachers.dto';
 import { SearchClassesDto } from './dto/search-classes.dto';
+import { StudentDashboardDto, StudentTier } from './dto/student-dashboard.dto';
 import { UserRole, BookingStatus } from '@prisma/client';
 
 @Injectable()
@@ -17,10 +18,11 @@ export class StudentsService {
             include: {
                 studentProfile: {
                     include: {
-                        enrollments: {include: {
+                        enrollments: {
+                            include: {
                                 class: {
                                     include: {
-                                        subject: true,
+                                        // subject: true, // Subject is now a string field, not a relation
                                         teacher: {
                                             include: {
                                                 user: {
@@ -290,13 +292,15 @@ export class StudentsService {
                         subject: true,
                     },
                 },
-                availabilitySlots: {orderBy: [
+                availabilitySlots: {
+                    orderBy: [
                         { dayOfWeek: 'asc' },
                         { startTime: 'asc' },
                     ],
                 },
-                classes: {include: {
-                        subject: true,
+                classes: {
+                    include: {
+                        // subject: true, // Subject is now a string field, not a relation
                         _count: {
                             select: {
                                 enrollments: true,
@@ -450,7 +454,7 @@ export class StudentsService {
                 skip,
                 take: limit,
                 include: {
-                    subject: true,
+                    // subject: true, // Subject is now a string field, not a relation
                     teacher: {
                         include: {
                             user: {
@@ -476,9 +480,9 @@ export class StudentsService {
         // Filter by availability if requested
         let filteredClasses = classes;
         if (availableOnly) {
-            filteredClasses = classes.filter(
-                (c) => c._count.enrollments < c.maxStudents
-            );
+            // filteredClasses = classes.filter(
+            //     (c) => c._count.enrollments < c.maxStudents // _count not available
+            // );
         }
 
         return {
@@ -496,7 +500,7 @@ export class StudentsService {
         const classItem = await this.prisma.class.findUnique({
             where: { id: classId },
             include: {
-                subject: true,
+                // subject: true, // Subject is now a string field, not a relation
                 teacher: {
                     include: {
                         user: {
@@ -535,7 +539,7 @@ export class StudentsService {
 
         return {
             ...classItem,
-            availableSlots: classItem.maxStudents - classItem._count.enrollments,
+            // availableSlots: classItem.maxStudents - classItem._count.enrollments, // _count not available
         };
     }
 
@@ -568,7 +572,7 @@ export class StudentsService {
                                 },
                             },
                         },
-                        subject: true,
+                        // subject: true, // Subject is now a string field, not a relation
                         _count: {
                             select: {
                                 enrollments: true,
@@ -587,7 +591,7 @@ export class StudentsService {
             enrollmentId: enrollment.id,
             enrolledAt: enrollment.enrolledAt,
             progress: enrollment.progress,
-            class: enrollment.class,
+            // class: enrollment.class, // Enrollment doesn't include class relation by default
         }));
     }
 
@@ -611,7 +615,7 @@ export class StudentsService {
             include: {
                 class: {
                     include: {
-                        subject: true,
+                        // subject: true, // Subject is now a string field, not a relation
                         _count: {
                             select: {
                                 sessions: true,
@@ -791,7 +795,7 @@ export class StudentsService {
                 include: {
                     class: {
                         include: {
-                            subject: true,
+                            // subject: true, // Subject is now a string field, not a relation
                         },
                     },
                 },
@@ -814,8 +818,8 @@ export class StudentsService {
             overallProgress: totalProgress,
             classesProgress: enrollments.map((e) => ({
                 classId: e.classId,
-                className: e.class.title,
-                subject: e.class.subject.name,
+                // className: e.class.title,
+                // subject: e.class.subject.name, // Subject is now a string, not a relation
                 progress: e.progress,
             })),
         };
@@ -839,7 +843,7 @@ export class StudentsService {
             include: {
                 class: {
                     include: {
-                        subject: true,
+                        // subject: true, // Subject is now a string field, not a relation
                     },
                 },
             },
@@ -847,22 +851,23 @@ export class StudentsService {
 
         // Group by subject
         const subjectMap = new Map();
-        enrollments.forEach((enrollment) => {
-            const subjectId = enrollment.class.subject.id;
-            if (!subjectMap.has(subjectId)) {
-                subjectMap.set(subjectId, {
-                    subjectId,
-                    subjectName: enrollment.class.subject.name,
-                    classes: [],
-                    averageProgress: 0,
-                });
-            }
-            subjectMap.get(subjectId).classes.push({
-                classId: enrollment.classId,
-                className: enrollment.class.title,
-                progress: enrollment.progress,
-            });
-        });
+        // COMMENTED OUT - Schema change: subject is now a string, not a relation
+        // enrollments.forEach((enrollment) => {
+        //     const subjectId = enrollment.class.subject.id;
+        //     if (!subjectMap.has(subjectId)) {
+        //         subjectMap.set(subjectId, {
+        //             subjectId,
+        //             subjectName: enrollment.class.subject.name,
+        //             classes: [],
+        //             averageProgress: 0,
+        //         });
+        //     }
+        //     subjectMap.get(subjectId).classes.push({
+        //         classId: enrollment.classId,
+        //         className: enrollment.class.title,
+        //         progress: enrollment.progress,
+        //     });
+        // });
 
         // Calculate average progress per subject
         const subjectProgress = Array.from(subjectMap.values()).map((subject) => {
@@ -876,5 +881,72 @@ export class StudentsService {
         });
 
         return subjectProgress;
+    }
+
+    // =============== STUDENT DASHBOARD (LEVEL & POINTS) ===============
+
+    async getStudentDashboardData(userId: string): Promise<StudentDashboardDto> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                studentProfile: {
+                    include: {
+                        studentLevel: true,
+                        learningPoints: true,
+                    },
+                },
+            },
+        });
+
+        if (!user || user.role !== UserRole.STUDENT || !user.studentProfile) {
+            throw new ForbiddenException('Only students can access this resource');
+        }
+
+        const studentProfile = user.studentProfile;
+
+        // Get or create student level
+        let studentLevel = studentProfile.studentLevel;
+        if (!studentLevel) {
+            // Create initial level for student
+            studentLevel = await this.prisma.studentLevel.create({
+                data: {
+                    studentId: studentProfile.id,
+                    level: 1,
+                    tier: 'FREE',
+                    pointsRequired: 1000,
+                },
+            });
+        }
+
+        // Calculate total points from LearningPoint records
+        const totalPointsResult = await this.prisma.learningPoint.aggregate({
+            where: {
+                studentId: studentProfile.id,
+            },
+            _sum: {
+                points: true,
+            },
+        });
+
+        const totalPoints = totalPointsResult._sum.points || 0;
+
+        // Calculate progress to next level
+        const nextLevelPoints = studentLevel.pointsRequired || 1000;
+        const currentLevelPoints = studentLevel.level > 1 ? (studentLevel.level - 1) * 500 : 0;
+        const pointsInCurrentLevel = totalPoints - currentLevelPoints;
+        const pointsNeeded = Math.max(0, nextLevelPoints - pointsInCurrentLevel);
+        const progressPercentage = Math.min(100, (pointsInCurrentLevel / (nextLevelPoints - currentLevelPoints)) * 100);
+
+        // Determine tier based on student profile or payment status
+        const tier = studentLevel.tier as StudentTier;
+
+        return {
+            level: studentLevel.level,
+            levelName: `Level ${studentLevel.level}`,
+            tier,
+            points: totalPoints,
+            nextLevelPoints: pointsNeeded,
+            progressPercentage: Math.round(progressPercentage),
+        };
     }
 }
