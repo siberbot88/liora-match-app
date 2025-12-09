@@ -8,6 +8,8 @@ import { App as AntdApp, ConfigProvider } from "antd";
 import { authProvider } from "./authProvider";
 import { colors } from './theme/colors';
 
+import { customDataProvider } from "./customDataProvider";
+
 export default function RefineProvider({
     children,
 }: {
@@ -50,7 +52,7 @@ export default function RefineProvider({
                     <Refine
                         routerProvider={routerProvider}
                         authProvider={authProvider}
-                        dataProvider={dataProvider(
+                        dataProvider={customDataProvider(
                             process.env.NEXT_PUBLIC_API_URL || "http://localhost:3333/api"
                         )}
                         resources={[
@@ -64,6 +66,15 @@ export default function RefineProvider({
                                 },
                             },
                             {
+                                name: "students",
+                                list: "/admin/students",
+                                create: "/admin/students/create",
+                                edit: "/admin/students/edit/:id",
+                                meta: {
+                                    label: "Students",
+                                },
+                            },
+                            {
                                 name: "classes",
                                 list: "/admin/classes",
                                 create: "/admin/classes/create",
@@ -73,8 +84,8 @@ export default function RefineProvider({
                                 },
                             },
                             {
-                                name: "profile",
-                                list: "/admin/profile",
+                                name: "bookings",
+                                list: "/admin/bookings",
                                 meta: {
                                     label: "Profile",
                                 },

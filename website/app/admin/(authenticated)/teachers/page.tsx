@@ -6,19 +6,19 @@ import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import Link from "next/link";
 
 export default function TeachersPage() {
-    const { data, isLoading } = useList({
+    const { result, query } = useList({
         resource: "teachers",
     });
 
     const columns = [
         {
             title: 'Name',
-            dataIndex: 'name',
+            dataIndex: ['user', 'name'],
             key: 'name',
         },
         {
             title: 'Email',
-            dataIndex: 'email',
+            dataIndex: ['user', 'email'],
             key: 'email',
         },
         {
@@ -78,9 +78,9 @@ export default function TeachersPage() {
                 </Link>
             </div>
             <Table
-                dataSource={data?.data}
+                dataSource={result?.data}
                 columns={columns}
-                loading={isLoading}
+                loading={query.isLoading}
                 rowKey="id"
             />
         </div>

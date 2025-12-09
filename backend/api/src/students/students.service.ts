@@ -10,6 +10,86 @@ import { UserRole, BookingStatus } from '@prisma/client';
 export class StudentsService {
     constructor(private prisma: PrismaService) { }
 
+    // =============== ADMIN METHODS ===============
+
+    async findAll() {
+        const students = await this.prisma.studentProfile.findMany({
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                        avatar: true,
+                        role: true,
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+
+        return {
+            data: students,
+            meta: {
+                total: students.length,
+                page: 1,
+                limit: students.length,
+                totalPages: 1,
+            },
+        };
+    }
+
+    async findOne(id: string) {
+        const student = await this.prisma.studentProfile.findUnique({
+            where: { id },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                        avatar: true,
+                        role: true,
+                    },
+                },
+                enrollments: {
+                    include: {
+                        class: {
+                            select: {
+                                id: true,
+                                title: true,
+                                price: true,
+                            },
+                        },
+                    },
+                },
+                bookings: {
+                    include: {
+                        teacher: {
+                            include: {
+                                user: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!student) {
+            throw new NotFoundException('Student not found');
+        }
+
+        return student;
+    }
+
     // =============== PROFILE MANAGEMENT ===============
 
     async getMyProfile(userId: string) {

@@ -130,6 +130,7 @@ model User {
   receivedMessages Message[]       @relation("ReceivedMessages")
   deviceTokens     DeviceToken[] // NEW
   notifications    Notification[] // NEW
+  activityLogs     ActivityLog[]
 
   @@map("users")
 }
@@ -461,6 +462,33 @@ model Booking {
   @@map("bookings")
 }
 
+model Transaction {
+  id              String        @id @default(uuid())
+  bookingId       String        @unique
+  amount          Float
+  provider        String        // "midtrans", "xendit", "manual", etc.
+  providerRef     String        // Payment gateway reference/transaction ID
+  status          PaymentStatus
+  metadata        Json?         // Payment method details, card info, etc.
+  
+  // Refund fields
+  isRefunded      Boolean       @default(false)
+  refundedAmount  Float?
+  refundReason    String?       @db.Text
+  refundedAt      DateTime?
+  refundedBy      String?       // Admin user ID who processed refund
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([isRefunded])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
 model Message {
   id         String   @id @default(uuid())
   senderId   String
@@ -508,24 +536,6 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
-}
-
-model Transaction {
-  id          String        @id @default(uuid())
-  bookingId   String        @unique
-  provider    String        @default("midtrans")
-  providerRef String        @unique // order_id from Midtrans
-  amount      Int
-  status      PaymentStatus @default(PENDING)
-  metadata    Json?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-
-  @@index([providerRef])
-  @@index([status])
-  @@map("transactions")
 }
 
 model ClassMaterial {
@@ -668,4 +678,42 @@ model ClassCompletion {
   @@index([studentProfileId])
   @@index([completedAt])
   @@map("class_completions")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String   // "LOGIN", "CREATE_CLASS", "ENROLL", "PAYMENT", etc.
+  entity    String?  // "Class", "Booking", "Transaction", "User"
+  entityId  String?
+  metadata  Json?    // Additional context data
+  ipAddress String?
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@map("activity_logs")
+}
+
+model Banner {
+  id          String    @id @default(uuid())
+  title       String
+  description String?   @db.Text
+  imageUrl    String
+  linkUrl     String?
+  linkType    String?   // "class" | "teacher" | "external" | "none"
+  linkId      String?
+  isActive    Boolean   @default(true)
+  priority    Int       @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive, priority])
+  @@map("banners")
 }

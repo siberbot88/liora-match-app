@@ -1,32 +1,102 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    Query,
+    UseGuards,
+} from '@nestjs/common';
+import { BannersService } from './banners.service';
+import { CreateBannerDto } from './dto/create-banner.dto';
+import { UpdateBannerDto } from './dto/update-banner.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
-interface Banner {
-    id: string;
-    title: string;
-    imageUrl: string;
-    type: string;
-    isActive: boolean;
-}
-
-@ApiTags('Banners')
+@ApiTags('banners')
 @Controller('banners')
 export class BannersController {
-    private readonly banners: Banner[] = [
-        { id: '1', title: 'Hero Banner 1', imageUrl: '/assets/hero_promotion/hero_1.png', type: 'HERO', isActive: true },
-        { id: '2', title: 'Hero Banner 2', imageUrl: '/assets/hero_promotion/hero_2.png', type: 'HERO', isActive: true },
-        { id: '3', title: 'Hero Banner 3', imageUrl: '/assets/hero_promotion/hero_3.png', type: 'HERO', isActive: true },
-        { id: '4', title: 'Hero Banner 4', imageUrl: '/assets/hero_promotion/hero_4.png', type: 'HERO', isActive: true },
-    ];
+    constructor(private readonly bannersService: BannersService) { }
+
+    @Post()
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Create new banner (Admin only)' })
+    @ApiResponse({ status: 201, description: 'Banner created successfully' })
+    create(@Body() createBannerDto: CreateBannerDto) {
+        return this.bannersService.create(createBannerDto);
+    }
 
     @Get()
-    @ApiOperation({ summary: 'Get active banners' })
-    @ApiResponse({ status: 200, description: 'Banners retrieved' })
-    @ApiQuery({ name: 'type', required: false, description: 'Filter by banner type (HERO, PROMO, etc.)' })
-    async getBanners(@Query('type') type?: string) {
-        if (type) {
-            return this.banners.filter(b => b.type === type && b.isActive);
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get all banners (Admin view)' })
+    @ApiQuery({ name: 'isActive', required: false, type: Boolean })
+    @ApiQuery({ name: 'search', required: false, type: String })
+    @ApiResponse({ status: 200, description: 'List of all banners' })
+    findAll(
+        @Query('isActive') isActive?: string,
+        @Query('search') search?: string,
+    ) {
+        const filters: any = {};
+
+        if (isActive !== undefined) {
+            filters.isActive = isActive === 'true';
         }
-        return this.banners.filter(b => b.isActive);
+
+        if (search) {
+            filters.search = search;
+        }
+
+        return this.bannersService.findAll(filters);
+    }
+
+    @Get('active')
+    @ApiOperation({ summary: 'Get active banners (Public - for mobile app)' })
+    @ApiResponse({ status: 200, description: 'List of active banners' })
+    findActive() {
+        return this.bannersService.findActive();
+    }
+
+    @Get(':id')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get banner details' })
+    @ApiResponse({ status: 200, description: 'Banner details' })
+    @ApiResponse({ status: 404, description: 'Banner not found' })
+    findOne(@Param('id') id: string) {
+        return this.bannersService.findOne(id);
+    }
+
+    @Patch(':id')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Update banner' })
+    @ApiResponse({ status: 200, description: 'Banner updated successfully' })
+    @ApiResponse({ status: 404, description: 'Banner not found' })
+    update(@Param('id') id: string, @Body() updateBannerDto: UpdateBannerDto) {
+        return this.bannersService.update(id, updateBannerDto);
+    }
+
+    @Patch(':id/toggle')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Toggle banner active status' })
+    @ApiResponse({ status: 200, description: 'Banner status toggled successfully' })
+    @ApiResponse({ status: 404, description: 'Banner not found' })
+    toggle(@Param('id') id: string) {
+        return this.bannersService.toggle(id);
+    }
+
+    @Delete(':id')
+    @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Delete banner' })
+    @ApiResponse({ status: 200, description: 'Banner deleted successfully' })
+    @ApiResponse({ status: 404, description: 'Banner not found' })
+    remove(@Param('id') id: string) {
+        return this.bannersService.remove(id);
     }
 }

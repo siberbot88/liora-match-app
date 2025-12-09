@@ -460,4 +460,148 @@ export class BookingsService {
 
         return updated;
     }
+
+    // =============== ADMIN ENDPOINTS ===============
+
+    /**
+     * Admin: Get all bookings with filters
+     */
+    async findAllAdmin(filters?: {
+        status?: BookingStatus;
+        studentId?: string;
+        teacherId?: string;
+        classId?: string;
+        dateFrom?: Date;
+        dateTo?: string;
+        search?: string;
+    }) {
+        const where: any = {};
+
+        if (filters?.status) {
+            where.status = filters.status;
+        }
+
+        if (filters?.studentId) {
+            where.studentProfileId = filters.studentId;
+        }
+
+        if (filters?.teacherId) {
+            where.teacherProfileId = filters.teacherId;
+        }
+
+        if (filters?.classId) {
+            where.classId = filters.classId;
+        }
+
+        if (filters?.dateFrom || filters?.dateTo) {
+            where.scheduledAt = {};
+            if (filters.dateFrom) {
+                where.scheduledAt.gte = new Date(filters.dateFrom);
+            }
+            if (filters.dateTo) {
+                where.scheduledAt.lte = new Date(filters.dateTo);
+            }
+        }
+
+        if (filters?.search) {
+            where.OR = [
+                { student: { user: { name: { contains: filters.search } } } },
+                { teacher: { user: { name: { contains: filters.search } } } },
+            ];
+        }
+
+        return this.prisma.booking.findMany({
+            where,
+            include: {
+                student: {
+                    select: {
+                        id: true,
+                        user: { select: { name: true, email: true } },
+                    },
+                },
+                teacher: {
+                    select: {
+                        id: true,
+                        user: { select: { name: true, email: true } },
+                    },
+                },
+                class: {
+                    select: { id: true, title: true },
+                },
+                subject: {
+                    select: { id: true, name: true },
+                },
+                transaction: true,
+            },
+            orderBy: { scheduledAt: 'desc' },
+        });
+    }
+
+    /**
+     * Admin: Update booking
+     */
+    async updateAdmin(id: string, updateData: Partial<CreateBookingDto & { status: BookingStatus }>) {
+        const booking = await this.prisma.booking.findUnique({
+            where: { id },
+        });
+
+        if (!booking) {
+            throw new NotFoundException('Booking not found');
+        }
+
+        return this.prisma.booking.update({
+            where: { id },
+            data: updateData,
+            include: {
+                student: { include: { user: true } },
+                teacher: { include: { user: true } },
+                class: true,
+                subject: true,
+            },
+        });
+    }
+
+    /**
+     * Admin: Delete booking
+     */
+    async deleteAdmin(id: string) {
+        const booking = await this.prisma.booking.findUnique({
+            where: { id },
+            include: { transaction: true },
+        });
+
+        if (!booking) {
+            throw new NotFoundException('Booking not found');
+        }
+
+        if (booking.transaction) {
+            throw new BadRequestException('Cannot delete booking with associated transaction');
+        }
+
+        return this.prisma.booking.delete({
+            where: { id },
+        });
+    }
+
+    /**
+     * Admin: Update booking status
+     */
+    async updateStatusAdmin(id: string, status: BookingStatus) {
+        const booking = await this.prisma.booking.findUnique({
+            where: { id },
+        });
+
+        if (!booking) {
+            throw new NotFoundException('Booking not found');
+        }
+
+        return this.prisma.booking.update({
+            where: { id },
+            data: { status },
+            include: {
+                student: { include: { user: true } },
+                teacher: { include: { user: true } },
+            },
+        });
+    }
 }

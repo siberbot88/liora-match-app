@@ -25,6 +25,8 @@ import { AdminsModule } from './admins/admins.module';
 import { ClassSectionsModule } from './class-sections/class-sections.module';
 import { ClassLessonsModule } from './class-lessons/class-lessons.module';
 import { ClassResourcesModule } from './class-resources/class-resources.module';
+import { AdminModule } from './admin/admin.module';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
     imports: [
@@ -46,20 +48,6 @@ import { ClassResourcesModule } from './class-resources/class-resources.module';
 
         AuthModule,
         UsersModule,
-        TeachersModule,
-        StudentsModule,
-        ClassesModule,
-        ClassSectionsModule,
-        ClassLessonsModule,
-        ClassResourcesModule,
-        BookingsModule,
-        MessagesModule,
-
-        // Phase 3
-        DevicesModule,
-        FilesModule,
-        PaymentsModule,
-        NotificationsModule,
         CalendarModule,
         HealthModule,
 
@@ -67,6 +55,9 @@ import { ClassResourcesModule } from './class-resources/class-resources.module';
         SubjectsModule,
         BannersModule,
         AdminsModule,
+
+        // Superadmin Module
+        AdminModule,
     ],
     controllers: [AppController],
     providers: [AppService],

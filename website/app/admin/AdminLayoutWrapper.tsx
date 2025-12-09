@@ -5,12 +5,15 @@ import { Layout, Menu, Avatar, Dropdown, Breadcrumb, theme as antTheme } from 'a
 import type { MenuProps } from 'antd';
 import {
     DashboardOutlined,
+    UserOutlined,
     TeamOutlined,
     BookOutlined,
-    UserOutlined,
+    DatabaseOutlined,
     SettingOutlined,
     LogoutOutlined,
-    DatabaseOutlined,
+    CalendarOutlined,
+    PictureOutlined,
+    DollarOutlined,
 } from '@ant-design/icons';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -53,6 +56,21 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
                     key: '/admin/students',
                     icon: <UserOutlined />,
                     label: 'Students',
+                },
+                {
+                    key: '/admin/bookings',
+                    icon: <CalendarOutlined />,
+                    label: 'Bookings',
+                },
+                {
+                    key: '/admin/banners',
+                    icon: <PictureOutlined />,
+                    label: 'Banners',
+                },
+                {
+                    key: '/admin/transactions',
+                    icon: <DollarOutlined />,
+                    label: 'Transactions',
                 },
             ],
         },
@@ -113,6 +131,12 @@ export default function AdminLayoutWrapper({ children }: { children: React.React
         } else if (paths.includes('students')) {
             items.push({ title: 'Data Master' });
             items.push({ title: 'Students' });
+        } else if (paths.includes('bookings')) {
+            items.push({ title: 'Data Master' });
+            items.push({ title: 'Bookings' });
+        } else if (paths.includes('banners')) {
+            items.push({ title: 'Data Master' });
+            items.push({ title: 'Banners' });
         } else if (paths.includes('profile')) {
             items.push({ title: 'Profile' });
         } else if (paths.includes('settings')) {

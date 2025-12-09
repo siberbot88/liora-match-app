@@ -5,13 +5,13 @@ import { useForm } from "@refinedev/react-hook-form";
 import { useList, useOne } from "@refinedev/core";
 import { Controller } from "react-hook-form";
 import { useParams, useRouter } from "next/navigation";
-import { 
-    Input, Button, Card, Typography, Steps, Select, 
-    Switch, Space, Alert, Divider 
+import {
+    Input, Button, Card, Typography, Steps, Select,
+    Switch, Space, Alert, Divider, InputNumber
 } from "antd";
 import { SaveOutlined, ArrowLeftOutlined, ArrowRightOutlined } from '@ant-design/icons';
-import CurriculumBuilder from '../../../components/CurriculumBuilder';
-import ResourcesUploader from '../../../components/ResourcesUploader';
+import CurriculumBuilder from '../../../../components/CurriculumBuilder';
+import ResourcesUploader from '../../../../components/ResourcesUploader';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -79,7 +79,10 @@ export default function EditClassPage() {
     // Populate form with existing data
     useEffect(() => {
         if (classData?.data) {
-            reset(classData.data);
+            reset({
+                ...classData.data,
+                features: classData.data.features || {},
+            });
             setTeachingType(classData.data.teachingType || 'ONLINE_COURSE');
         }
     }, [classData, reset]);
@@ -131,7 +134,7 @@ export default function EditClassPage() {
                                     Class Title *
                                 </label>
                                 <Input
-                                    {...register('title', { 
+                                    {...register('title', {
                                         required: 'Title is required',
                                         minLength: { value: 10, message: 'Title must be at least 10 characters' }
                                     })}
@@ -142,9 +145,9 @@ export default function EditClassPage() {
                                 {errors.title && (
                                     <Text type="danger" style={{ fontSize: 12 }}>
                                         {errors.title.message as string}
-                                    
 
-</Text>
+
+                                    </Text>
                                 )}
                             </div>
 
@@ -221,6 +224,103 @@ export default function EditClassPage() {
                                     />
                                 </div>
                             </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                                    Level Range
+                                </label>
+                                <Input
+                                    {...register('levelRange')}
+                                    placeholder="e.g., Pemula, Menengah, Semua Tingkat"
+                                    size="large"
+                                />
+                            </div>
+
+                            {/* Conditional Fields based on Teaching Type */}
+                            {watchTeachingType === 'ONLINE_PRIVATE' && (
+                                <div style={{ background: '#e6f7ff', padding: 16, borderRadius: 8, border: '1px solid #91d5ff' }}>
+                                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                                        Default Meeting Link (Zoom/Google Meet)
+                                    </label>
+                                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+                                        This link will be used for all sessions unless overridden.
+                                    </Text>
+                                    <Controller
+                                        name={"features.zoomLink" as any}
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Input
+                                                {...field}
+                                                placeholder="https://zoom.us/j/..."
+                                                size="large"
+                                            />
+                                        )}
+                                    />
+                                </div>
+                            )}
+
+                            {watchTeachingType === 'TAKE_HOME' && (
+                                <div style={{ background: '#fff7e6', padding: 16, borderRadius: 8, border: '1px solid #ffd591' }}>
+                                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                                        Service Area / Travel Note
+                                    </label>
+                                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+                                        Instructions for students about your service area (e.g. "Jakarta Selatan Only").
+                                    </Text>
+                                    <Controller
+                                        name={"features.serviceArea" as any}
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextArea
+                                                {...field}
+                                                rows={2}
+                                                placeholder="e.g. Guru will travel to student's home within 10km of Jakarta Selatan."
+                                            />
+                                        )}
+                                    />
+                                </div>
+                            )}
+
+                            {watchTeachingType === 'PUBLIC_LESSON' && (
+                                <div style={{ background: '#f6ffed', padding: 16, borderRadius: 8, border: '1px solid #b7eb8f' }}>
+                                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                                        Class Location Details
+                                    </label>
+                                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+                                        Specific location instructions (Studio Name, Room No, Google Maps Link).
+                                    </Text>
+                                    <Controller
+                                        name={"features.locationDetails" as any}
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextArea
+                                                {...field}
+                                                rows={2}
+                                                placeholder="e.g. Studio 5, 2nd Floor. Use elevator B."
+                                            />
+                                        )}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Global Extra Features */}
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                                    Tryout / Exam URL (Optional)
+                                </label>
+                                <Controller
+                                    name={"features.tryoutUrl" as any}
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input
+                                            {...field}
+                                            placeholder="https://exam.liora.com/..."
+                                            size="large"
+                                            prefix={<span style={{ fontSize: 16 }}>📝</span>}
+                                        />
+                                    )}
+                                />
+                            </div>
                         </Space>
 
                         <Divider />
@@ -242,16 +342,16 @@ export default function EditClassPage() {
                 {currentStep === 1 && (
                     <Card>
                         {watchTeachingType === 'ONLINE_COURSE' ? (
-                            <CurriculumBuilder 
+                            <CurriculumBuilder
                                 classId={classId}
                                 initialSections={classData?.data?.sections || []}
-                                onChange={(sections) => console.log('Sections updated:', sections)} 
+                                onChange={(sections) => console.log('Sections updated:', sections)}
                             />
                         ) : (
-                            <ResourcesUploader 
+                            <ResourcesUploader
                                 classId={classId}
                                 initialResources={classData?.data?.resources || []}
-                                onChange={(resources) => console.log('Resources updated:', resources)} 
+                                onChange={(resources) => console.log('Resources updated:', resources)}
                             />
                         )}
 

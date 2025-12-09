@@ -66,9 +66,8 @@ export class CreateClassDto {
     @IsOptional()
     certificateAvailable?: boolean = false;
 
-    @IsArray()
     @IsOptional()
-    features?: string[];
+    features?: any;
 
     // Pricing
     @IsNumber()

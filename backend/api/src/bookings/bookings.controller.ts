@@ -107,4 +107,70 @@ export class BookingsController {
     ) {
         return this.bookingsService.findOne(user.userId, user.role, id);
     }
+
+    // =============== ADMIN ENDPOINTS ===============
+
+    @Get()
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Get all bookings with filters (Admin only)' })
+    @ApiResponse({ status: 200, description: 'List of all bookings' })
+    async findAll(
+        @Query('status') status?: string,
+        @Query('studentId') studentId?: string,
+        @Query('teacherId') teacherId?: string,
+        @Query('classId') classId?: string,
+        @Query('dateFrom') dateFrom?: string,
+        @Query('dateTo') dateTo?: string,
+        @Query('search') search?: string,
+    ) {
+        const filters: any = {};
+
+        if (status) filters.status = status;
+        if (studentId) filters.studentId = studentId;
+        if (teacherId) filters.teacherId = teacherId;
+        if (classId) filters.classId = classId;
+        if (dateFrom) filters.dateFrom = dateFrom;
+        if (dateTo) filters.dateTo = dateTo;
+        if (search) filters.search = search;
+
+        return this.bookingsService.findAllAdmin(filters);
+    }
+
+    @Patch('admin/:id')
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Update booking (Admin only)' })
+    @ApiResponse({ status: 200, description: 'Booking updated' })
+    async updateAdmin(
+        @Param('id') id: string,
+        @Body() updateData: any,
+    ) {
+        return this.bookingsService.updateAdmin(id, updateData);
+    }
+
+    @Patch('admin/:id/status')
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Update booking status (Admin only)' })
+    @ApiResponse({ status: 200, description: 'Status updated' })
+    async updateStatusAdmin(
+        @Param('id') id: string,
+        @Body('status') status: string,
+    ) {
+        return this.bookingsService.updateStatusAdmin(id, status as any);
+    }
+
+    @Patch('admin/:id/delete')
+    @ApiBearerAuth('JWT-auth')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(UserRole.ADMIN)
+    @ApiOperation({ summary: 'Delete booking (Admin only)' })
+    @ApiResponse({ status: 200, description: 'Booking deleted' })
+    async deleteAdmin(@Param('id') id: string) {
+        return this.bookingsService.deleteAdmin(id);
+    }
 }

@@ -75,14 +75,14 @@ export default function CreateClassPage() {
             price: 0,
             isPublished: false,
             isPremium: false,
-            features: [],
+            features: {},
             sections: [],
             resources: [],
         },
         mode: 'onBlur',
     });
 
-    const watchTeachingType = watch('teachingType');
+    const watchTeachingType = watch('teachingType') as string;
 
     const handleFormSubmit = (data: any) => {
         onFinish(data);
@@ -250,132 +250,131 @@ export default function CreateClassPage() {
                                     />
                                 </div>
 
+
                                 <div>
                                     <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                        Jenjang *
+                                        Teaching Type *
                                     </label>
                                     <Controller
-                                        name="jenjang"
+                                        name="teachingType"
                                         control={control}
-                                        rules={{ required: 'Jenjang is required' }}
+                                        rules={{ required: 'Teaching type is required' }}
                                         render={({ field }) => (
                                             <Select
                                                 {...field}
-                                                placeholder="Select jenjang"
+                                                placeholder="Select teaching type"
                                                 size="large"
-                                                status={errors.jenjang ? 'error' : ''}
+                                                status={errors.teachingType ? 'error' : ''}
                                                 style={{ width: '100%' }}
-                                                options={JENJANG_OPTIONS}
-                                            />
+                                            >
+                                                {TEACHING_TYPE_OPTIONS.map(option => (
+                                                    <Select.Option key={option.value} value={option.value}>
+                                                        <div>
+                                                            <div style={{ fontWeight: 500 }}>{option.label}</div>
+                                                            <div style={{ fontSize: 12, color: '#666' }}>{option.description}</div>
+                                                        </div>
+                                                    </Select.Option>
+                                                ))}
+                                            </Select>
                                         )}
                                     />
                                 </div>
-                            </div>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                    Teaching Type *
-                                </label>
-                                <Controller
-                                    name="teachingType"
-                                    control={control}
-                                    rules={{ required: 'Teaching type is required' }}
-                                    render={({ field }) => (
-                                        <Select
-                                            {...field}
-                                            placeholder="Select teaching type"
-                                            size="large"
-                                            status={errors.teachingType ? 'error' : ''}
-                                            style={{ width: '100%' }}
-                                        >
-                                            {TEACHING_TYPE_OPTIONS.map(option => (
-                                                <Select.Option key={option.value} value={option.value}>
-                                                    <div>
-                                                        <div style={{ fontWeight: 500 }}>{option.label}</div>
-                                                        <div style={{ fontSize: 12, color: '#666' }}>{option.description}</div>
-                                                    </div>
-                                                </Select.Option>
-                                            ))}
-                                        </Select>
-                                    )}
-                                />
-                            </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                                        Level Range
+                                    </label>
+                                    <Input
+                                        {...register('levelRange')}
+                                        placeholder="e.g., Pemula, Menengah, Semua Tingkat"
+                                        size="large"
+                                    />
+                                </div>
 
-                            <div>
-                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                    Level Range
-                                </label>
-                                <Input
-                                    {...register('levelRange')}
-                                    placeholder="e.g., Pemula, Menengah, Semua Tingkat"
-                                    size="large"
-                                />
-                            </div>
-
-                            <Divider style={{ margin: '16px 0' }} />
-
-                            {/* Pricing Section */}
-                            <div>
-                                <Alert
-                                    type={watchTeachingType === 'ONLINE_COURSE' ? 'info' : 'warning'}
-                                    message={
-                                        watchTeachingType === 'ONLINE_COURSE'
-                                            ? '💰 One-time Purchase (Lifetime Access)'
-                                            : '⏱️ Per-Session Pricing'
-                                    }
-                                    description={
-                                        watchTeachingType === 'ONLINE_COURSE'
-                                            ? 'Students pay once and get lifetime access to all course content. Set to 0 for free courses.'
-                                            : 'Students pay per session - specify price for 60 minutes of learning.'
-                                    }
-                                    showIcon
-                                    style={{ marginBottom: 16 }}
-                                />
-
-                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                                    {watchTeachingType === 'ONLINE_COURSE'
-                                        ? 'Course Price (One-time)'
-                                        : 'Price per 60 Minutes'}
-                                    {watchTeachingType !== 'ONLINE_COURSE' && ' *'}
-                                </label>
-                                <Controller
-                                    name="price"
-                                    control={control}
-                                    rules={{
-                                        required: watchTeachingType !== 'ONLINE_COURSE' ? 'Price is required for per-session pricing' : false,
-                                        min: {
-                                            value: watchTeachingType === 'ONLINE_COURSE' ? 0 : 1,
-                                            message: watchTeachingType === 'ONLINE_COURSE'
-                                                ? 'Price cannot be negative'
-                                                : 'Price must be greater than 0 for per-session pricing'
-                                        }
-                                    }}
-                                    render={({ field }) => (
-                                        <InputNumber
-                                            {...field}
-                                            prefix="Rp"
-                                            style={{ width: '100%' }}
-                                            size="large"
-                                            min={watchTeachingType === 'ONLINE_COURSE' ? 0 : 1}
-                                            step={10000}
-                                            formatter={(value: any) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
-                                            parser={(value: any) => value?.replace(/\$\s?|(\.*)/g, '')}
-                                            placeholder={watchTeachingType === 'ONLINE_COURSE' ? '0 for free course' : 'e.g., 230000'}
-                                            status={errors.price ? 'error' : ''}
+                                {/* Conditional Fields based on Teaching Type */}
+                                {watchTeachingType === 'ONLINE_PRIVATE' && (
+                                    <div style={{ background: '#e6f7ff', padding: 16, borderRadius: 8, border: '1px solid #91d5ff' }}>
+                                        <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                                            Default Meeting Link (Zoom/Google Meet)
+                                        </label>
+                                        <Controller
+                                            name={"features.zoomLink" as any}
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Input
+                                                    {...field}
+                                                    placeholder="Meeting URL"
+                                                    size="large"
+                                                />
+                                            )}
                                         />
-                                    )}
-                                />
-                                {errors.price && (
-                                    <Text type="danger" style={{ fontSize: 12 }}>
-                                        {errors.price.message as string}
-                                    </Text>
+                                    </div>
                                 )}
-                                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
-                                    {watchTeachingType === 'ONLINE_COURSE'
-                                        ? 'Example: Rp 499.000 for complete course, or Rp 0 for free'
-                                        : 'Example: Rp 230.000 per hour of learning'}
-                                </Text>
+
+                                {/* Pricing Section */}
+                                <div>
+                                    <Alert
+                                        type={watchTeachingType === 'ONLINE_COURSE' ? 'info' : 'warning'}
+                                        message={
+                                            watchTeachingType === 'ONLINE_COURSE'
+                                                ? '💰 One-time Purchase (Lifetime Access)'
+                                                : '⏱️ Per-Session Pricing'
+                                        }
+                                        description={
+                                            watchTeachingType === 'ONLINE_COURSE'
+                                                ? 'Students pay once and get lifetime access to all course content. Set to 0 for free courses.'
+                                                : 'Students pay per session - specify price for 60 minutes of learning.'
+                                        }
+                                        showIcon
+                                        style={{ marginBottom: 16 }}
+                                    />
+
+                                    <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                                        {watchTeachingType === 'ONLINE_COURSE'
+                                            ? 'Course Price (One-time)'
+                                            : 'Price per 60 Minutes'}
+                                        {watchTeachingType !== 'ONLINE_COURSE' && ' *'}
+                                    </label>
+                                    <Controller
+                                        name="price"
+                                        control={control}
+                                        rules={{
+                                            required: watchTeachingType !== 'ONLINE_COURSE' ? 'Price is required for per-session pricing' : false,
+                                            min: {
+                                                value: watchTeachingType === 'ONLINE_COURSE' ? 0 : 1,
+                                                message: watchTeachingType === 'ONLINE_COURSE'
+                                                    ? 'Price cannot be negative'
+                                                    : 'Price must be greater than 0 for per-session pricing'
+                                            }
+                                        }}
+                                        render={({ field }) => (
+                                            <InputNumber
+                                                {...field}
+                                                prefix="Rp"
+                                                style={{ width: '100%' }}
+                                                size="large"
+                                                min={watchTeachingType === 'ONLINE_COURSE' ? 0 : 1}
+                                                step={10000}
+                                                formatter={(value: any) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                                                parser={(value: any) => value?.replace(/\$\s?|(\.*)/g, '')}
+                                                placeholder={watchTeachingType === 'ONLINE_COURSE' ? '0 for free course' : 'e.g., 230000'}
+                                                status={errors.price ? 'error' : ''}
+                                            />
+                                        )}
+                                    />
+                                    {errors.price && (
+                                        <Text type="danger" style={{ fontSize: 12 }}>
+                                            {errors.price.message as string}
+                                        </Text>
+                                    )}
+                                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                                        {watchTeachingType === 'ONLINE_COURSE'
+                                            ? 'Example: Rp 499.000 for complete course, or Rp 0 for free'
+                                            : 'Example: Rp 230.000 per hour of learning'}
+                                    </Text>
+                                </div>
                             </div>
+
                         </Space>
 
                         <Divider />

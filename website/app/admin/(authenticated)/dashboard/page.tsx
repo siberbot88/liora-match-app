@@ -1,280 +1,253 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Progress, Table, Spin } from 'antd';
+import { useState, useEffect } from "react";
+import { Card, Row, Col, Statistic, Badge, Timeline, Spin, Alert } from "antd";
 import {
-    TeamOutlined,
-    BookOutlined,
     UserOutlined,
+    BookOutlined,
+    DollarOutlined,
+    CheckCircleOutlined,
     RiseOutlined,
-    ArrowUpOutlined,
-} from '@ant-design/icons';
-
-interface DashboardStats {
-    totalTeachers: number;
-    totalClasses: number;
-    totalStudents: number;
-    activeSessions: number;
-}
+    DatabaseOutlined,
+} from "@ant-design/icons";
 
 export default function DashboardPage() {
-    const [stats, setStats] = useState<DashboardStats | null>(null);
+    // Local state for bypassing Refine hooks
+    const [stats, setStats] = useState<any>(null);
+    const [activities, setActivities] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Hardcoded URL to ensure correctness
+    const apiUrl = 'http://localhost:3333/api';
 
     useEffect(() => {
-        fetchDashboardStats();
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+
+                // Fetch Stats
+                const statsRes = await fetch(`${apiUrl}/admin/dashboard/stats`);
+                if (!statsRes.ok) throw new Error(`Stats API failed: ${statsRes.statusText}`);
+                const statsData = await statsRes.json();
+
+                // Fetch Activities
+                const activitiesRes = await fetch(`${apiUrl}/admin/dashboard/activity-recent`);
+                if (!activitiesRes.ok) throw new Error(`Activities API failed: ${activitiesRes.statusText}`);
+                const activitiesData = await activitiesRes.json();
+
+                console.log('✅ Manual Fetch - Stats:', statsData);
+                console.log('✅ Manual Fetch - Activities:', activitiesData);
+
+                setStats(statsData);
+                setActivities(activitiesData || []);
+                setLoading(false);
+            } catch (err: any) {
+                console.error('❌ Manual Fetch Error:', err);
+                setError(err.message);
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, []);
-
-    const fetchDashboardStats = async () => {
-        try {
-            setLoading(true);
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-
-            // Fetch real data from APIs
-            const [teachersRes, classesRes, studentsRes] = await Promise.all([
-                fetch(`${apiUrl}/teachers`),
-                fetch(`${apiUrl}/classes`),
-                fetch(`${apiUrl}/students`),
-            ]);
-
-            const teachers = await teachersRes.json();
-            const classes = await classesRes.json();
-            const students = await studentsRes.json();
-
-            setStats({
-                totalTeachers: Array.isArray(teachers) ? teachers.length : 0,
-                totalClasses: Array.isArray(classes) ? classes.length : 0,
-                totalStudents: Array.isArray(students) ? students.length : 0,
-                activeSessions: 0, // Will be implemented later
-            });
-        } catch (error) {
-            console.error('Failed to fetch dashboard stats:', error);
-            // Fallback to default values
-            setStats({
-                totalTeachers: 0,
-                totalClasses: 0,
-                totalStudents: 0,
-                activeSessions: 0,
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Mock data for recent activities
-    const recentActivities = [
-        {
-            key: '1',
-            activity: 'New Teacher Added',
-            user: 'Admin',
-            time: '2 hours ago',
-        },
-        {
-            key: '2',
-            activity: 'Class Updated',
-            user: 'Admin',
-            time: '5 hours ago',
-        },
-        {
-            key: '3',
-            activity: 'Student Enrolled',
-            user: 'System',
-            time: '1 day ago',
-        },
-    ];
-
-    const columns = [
-        {
-            title: 'Activity',
-            dataIndex: 'activity',
-            key: 'activity',
-        },
-        {
-            title: 'User',
-            dataIndex: 'user',
-            key: 'user',
-        },
-        {
-            title: 'Time',
-            dataIndex: 'time',
-            key: 'time',
-        },
-    ];
 
     if (loading) {
         return (
-            <div style={{ textAlign: 'center', padding: 50 }}>
-                <Spin size="large" />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+                <Spin size="large" tip="Loading dashboard..." />
             </div>
         );
     }
 
+    if (error) {
+        return (
+            <div style={{ padding: 24 }}>
+                <Alert
+                    message="Error Loading Dashboard"
+                    description={error}
+                    type="error"
+                    showIcon
+                />
+            </div>
+        );
+    }
+
+    // Prepare data
+    const { users, classes, transactions, bookings, systemHealth } = stats || {};
+
     return (
-        <div>
+        <div style={{ padding: 24 }}>
+            {/* Header */}
             <div style={{ marginBottom: 24 }}>
-                <h2 style={{ fontSize: 24, fontWeight: 600, margin: 0 }}>Dashboard</h2>
-                <p style={{ color: '#666', marginTop: 8 }}>Welcome back, here's what's happening with your platform</p>
+                <h1 style={{ margin: 0, marginBottom: 8 }}>Dashboard Overview</h1>
+                <p style={{ color: '#666', margin: 0 }}>
+                    Monitor your platform's key metrics and system health
+                </p>
             </div>
 
-            {/* Stats Cards - Real Data */}
+            {/* System Health Banner */}
+            {systemHealth && (
+                <Alert
+                    message={
+                        <span>
+                            System Health: API{' '}
+                            <Badge status={systemHealth.api === 'ok' ? 'success' : 'error'} />
+                            {' | '}Database{' '}
+                            <Badge status={systemHealth.database === 'ok' ? 'success' : 'error'} />
+                            {' | '}Redis{' '}
+                            <Badge status={systemHealth.redis === 'ok' ? 'success' : 'error'} />
+                            {' | '}Uptime: {Math.floor(systemHealth.uptime / 3600)}h{' '}
+                            {Math.floor((systemHealth.uptime % 3600) / 60)}m
+                        </span>
+                    }
+                    type={systemHealth.api === 'ok' && systemHealth.database === 'ok' && systemHealth.redis === 'ok' ? 'success' : 'warning'}
+                    showIcon
+                    style={{ marginBottom: 24 }}
+                    icon={<CheckCircleOutlined />}
+                />
+            )}
+
+            {/* Stat Cards */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                 <Col xs={24} sm={12} lg={6}>
-                    <Card bordered={false}>
+                    <Card>
                         <Statistic
-                            title={<span style={{ fontSize: 14, color: '#666' }}>Total Teachers</span>}
-                            value={stats?.totalTeachers || 0}
-                            prefix={<TeamOutlined style={{ color: '#4CAF50' }} />}
-                            suffix={
-                                <span style={{ fontSize: 14, color: '#4CAF50' }}>
-                                    <ArrowUpOutlined /> 12%
-                                </span>
-                            }
-                            valueStyle={{ fontSize: 30, fontWeight: 600 }}
+                            title="Total Users"
+                            value={users?.total || 0}
+                            prefix={<UserOutlined />}
+                            valueStyle={{ color: '#3f8600' }}
                         />
-                        <Progress
-                            percent={75}
-                            strokeColor="#4CAF50"
-                            showInfo={false}
-                            style={{ marginTop: 8 }}
-                        />
+                        <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+                            <div>Students: {users?.students || 0}</div>
+                            <div>Teachers: {users?.teachers || 0}</div>
+                            <div style={{ marginTop: 4, color: '#52c41a' }}>
+                                <RiseOutlined /> +{users?.growth?.weekly || 0} this week
+                            </div>
+                        </div>
                     </Card>
                 </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card bordered={false}>
-                        <Statistic
-                            title={<span style={{ fontSize: 14, color: '#666' }}>Total Classes</span>}
-                            value={stats?.totalClasses || 0}
-                            prefix={<BookOutlined style={{ color: '#2196F3' }} />}
-                            suffix={
-                                <span style={{ fontSize: 14, color: '#2196F3' }}>
-                                    <ArrowUpOutlined /> 8%
-                                </span>
-                            }
-                            valueStyle={{ fontSize: 30, fontWeight: 600 }}
-                        />
-                        <Progress
-                            percent={60}
-                            strokeColor="#2196F3"
-                            showInfo={false}
-                            style={{ marginTop: 8 }}
-                        />
-                    </Card>
-                </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card bordered={false}>
-                        <Statistic
-                            title={<span style={{ fontSize: 14, color: '#666' }}>Total Students</span>}
-                            value={stats?.totalStudents || 0}
-                            prefix={<UserOutlined style={{ color: '#9C27B0' }} />}
-                            suffix={
-                                <span style={{ fontSize: 14, color: '#4CAF50' }}>
-                                    <ArrowUpOutlined /> 24%
-                                </span>
-                            }
-                            valueStyle={{ fontSize: 30, fontWeight: 600 }}
-                        />
-                        <Progress
-                            percent={85}
-                            strokeColor="#9C27B0"
-                            showInfo={false}
-                            style={{ marginTop: 8 }}
-                        />
-                    </Card>
-                </Col>
-                <Col xs={24} sm={12} lg={6}>
-                    <Card bordered={false}>
-                        <Statistic
-                            title={<span style={{ fontSize: 14, color: '#666' }}>Active Sessions</span>}
-                            value={stats?.activeSessions || 0}
-                            prefix={<RiseOutlined style={{ color: '#FF9800' }} />}
-                            valueStyle={{ fontSize: 30, fontWeight: 600 }}
-                        />
-                        <Progress
-                            percent={45}
-                            strokeColor="#FF9800"
-                            showInfo={false}
-                            style={{ marginTop: 8 }}
-                        />
-                    </Card>
-                </Col>
-            </Row>
 
-            {/* Quick Actions & Recent Activity */}
-            <Row gutter={[16, 16]}>
-                <Col xs={24} lg={16}>
-                    <Card title="Recent Activity" bordered={false}>
-                        <Table
-                            dataSource={recentActivities}
-                            columns={columns}
-                            pagination={false}
-                            size="small"
+                <Col xs={24} sm={12} lg={6}>
+                    <Card>
+                        <Statistic
+                            title="Active Classes"
+                            value={classes?.active || 0}
+                            prefix={<BookOutlined />}
+                            valueStyle={{ color: '#1890ff' }}
+                            suffix={`/ ${classes?.total || 0}`}
                         />
+                        <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+                            <div>Published: {classes?.active || 0}</div>
+                            <div>Draft: {classes?.draft || 0}</div>
+                        </div>
                     </Card>
                 </Col>
-                <Col xs={24} lg={8}>
-                    <Card title="Quick Actions" bordered={false}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <a
-                                href="/admin/teachers/create"
-                                style={{
-                                    padding: '12px 16px',
-                                    background: '#f0f2f5',
-                                    borderRadius: 8,
-                                    textDecoration: 'none',
-                                    color: 'inherit',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    transition: 'all 0.3s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#e3f2fd'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = '#f0f2f5'}
-                            >
-                                <TeamOutlined style={{ fontSize: 20, color: '#2196F3' }} />
-                                <span style={{ fontWeight: 500 }}>Add New Teacher</span>
-                            </a>
-                            <a
-                                href="/admin/classes/create"
-                                style={{
-                                    padding: '12px 16px',
-                                    background: '#f0f2f5',
-                                    borderRadius: 8,
-                                    textDecoration: 'none',
-                                    color: 'inherit',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    transition: 'all 0.3s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#e8f5e9'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = '#f0f2f5'}
-                            >
-                                <BookOutlined style={{ fontSize: 20, color: '#4CAF50' }} />
-                                <span style={{ fontWeight: 500 }}>Add New Class</span>
-                            </a>
-                            <a
-                                href="/admin/students"
-                                style={{
-                                    padding: '12px 16px',
-                                    background: '#f0f2f5',
-                                    borderRadius: 8,
-                                    textDecoration: 'none',
-                                    color: 'inherit',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    transition: 'all 0.3s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#f3e5f5'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = '#f0f2f5'}
-                            >
-                                <UserOutlined style={{ fontSize: 20, color: '#9C27B0' }} />
-                                <span style={{ fontWeight: 500 }}>View All Students</span>
-                            </a>
+
+                <Col xs={24} sm={12} lg={6}>
+                    <Card>
+                        <Statistic
+                            title="Revenue (Month)"
+                            value={transactions?.month?.amount || 0}
+                            prefix="Rp"
+                            valueStyle={{ color: '#cf1322' }}
+                            precision={0}
+                        />
+                        <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+                            <div>Transactions: {transactions?.month?.count || 0}</div>
+                            <div>Today: Rp {(transactions?.today?.amount || 0).toLocaleString('id-ID')}</div>
+                        </div>
+                    </Card>
+                </Col>
+
+                <Col xs={24} sm={12} lg={6}>
+                    <Card>
+                        <Statistic
+                            title="Total Bookings"
+                            value={
+                                (bookings?.pending || 0) +
+                                (bookings?.confirmed || 0) +
+                                (bookings?.completed || 0)
+                            }
+                            prefix={<DatabaseOutlined />}
+                            valueStyle={{ color: '#722ed1' }}
+                        />
+                        <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+                            <div>Pending: {bookings?.pending || 0}</div>
+                            <div>Confirmed: {bookings?.confirmed || 0}</div>
+                            <div>Completed: {bookings?.completed || 0}</div>
                         </div>
                     </Card>
                 </Col>
             </Row>
+
+            {/* Teaching Type Distribution */}
+            {classes?.byTeachingType && (
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                    <Col span={24}>
+                        <Card title="Classes by Teaching Type">
+                            <Row gutter={[16, 16]}>
+                                {Object.entries(classes.byTeachingType).map(([type, count]) => (
+                                    <Col key={type} xs={12} sm={6}>
+                                        <Statistic
+                                            title={type.replace(/_/g, ' ')}
+                                            value={count as number}
+                                            valueStyle={{ fontSize: 24 }}
+                                        />
+                                    </Col>
+                                ))}
+                            </Row>
+                        </Card>
+                    </Col>
+                </Row>
+            )}
+
+            {/* Recent Activity Feed */}
+            <Card
+                title="Recent Activity"
+                loading={loading}
+                extra={
+                    <span style={{ color: '#666', fontSize: 12 }}>
+                        Last 50 activities
+                    </span>
+                }
+            >
+                {activities.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+                        No recent activities
+                    </div>
+                ) : (
+                    <Timeline
+                        mode="left"
+                        items={activities.slice(0, 20).map((activity: any) => ({
+                            label: new Date(activity.createdAt).toLocaleString('id-ID', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                            }),
+                            children: (
+                                <div>
+                                    <strong>{activity.user?.name || 'System'}</strong>
+                                    <span style={{ color: '#666', marginLeft: 8 }}>
+                                        {activity.action.toLowerCase().replace(/_/g, ' ')}
+                                    </span>
+                                    {activity.entity && (
+                                        <span style={{ color: '#999', marginLeft: 4 }}>
+                                            ({activity.entity})
+                                        </span>
+                                    )}
+                                    {activity.ipAddress && (
+                                        <div style={{ fontSize: 11, color: '#ccc', marginTop: 2 }}>
+                                            IP: {activity.ipAddress}
+                                        </div>
+                                    )}
+                                </div>
+                            ),
+                        }))}
+                    />
+                )}
+            </Card>
         </div>
     );
 }

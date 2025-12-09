@@ -25,6 +25,22 @@ import { UserRole } from '@prisma/client';
 export class StudentsController {
     constructor(private readonly studentsService: StudentsService) { }
 
+    // =============== ADMIN ENDPOINTS ===============
+
+    @Get()
+    @ApiOperation({ summary: 'List all students (Admin)' })
+    @ApiResponse({ status: 200, description: 'Students list retrieved' })
+    async findAll() {
+        return this.studentsService.findAll();
+    }
+
+    @Get(':id')
+    @ApiOperation({ summary: 'Get student detail by ID (Admin)' })
+    @ApiResponse({ status: 200, description: 'Student detail retrieved' })
+    async findOne(@Param('id') id: string) {
+        return this.studentsService.findOne(id);
+    }
+
     // =============== STUDENT PROFILE ===============
 
     @Get('profile/me')
